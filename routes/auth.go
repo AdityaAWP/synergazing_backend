@@ -19,17 +19,19 @@ func SetupAuthRoutes(app *fiber.App) {
 	auth.Post("/Logout", middleware.AuthMiddleware(), authController.Logout)
 }
 
-func SetupProtectedRoutes(app *fiber.App) {
-	api := app.Group("/api", middleware.AuthMiddleware())
+// func SetupProtectedRoutes(app *fiber.App) {
+// 	// Create protected API group
+// 	api := app.Group("/api", middleware.AuthMiddleware())
 
-	api.Get("/profile", func(c *fiber.Ctx) error {
-		userID := c.Locals("user_id").(uint)
-		userEmail := c.Locals("user_email").(string)
+// 	// Example protected routes (you can add more here)
+// 	api.Get("/test", func(c *fiber.Ctx) error {
+// 		userID := c.Locals("user_id").(uint)
+// 		userEmail := c.Locals("user_email").(string)
 
-		return c.JSON(fiber.Map{
-			"message":    "This is a protected route",
-			"user_id":    userID,
-			"user_email": userEmail,
-		})
-	})
-}
+// 		return c.JSON(fiber.Map{
+// 			"message":    "This is a protected test route",
+// 			"user_id":    userID,
+// 			"user_email": userEmail,
+// 		})
+// 	})
+// }

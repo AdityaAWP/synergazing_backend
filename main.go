@@ -21,8 +21,13 @@ func main() {
 
 	app := fiber.New()
 
+	// app.Static("/uploads", "./uploads")
+
 	routes.SetupAuthRoutes(app)
-	routes.SetupProtectedRoutes(app)
+	// routes.SetupProtectedRoutes(app)
+	routes.SetupProfileRoutes(app)
+
+	// routes.SetupProfileRoutes(app)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello World - GORM Connected!")

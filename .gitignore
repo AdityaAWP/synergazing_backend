@@ -19,3 +19,10 @@ go.work
 
 # Temporary files
 tmp/
+
+# Uploaded files (keep directory structure but ignore content)
+uploads/*
+!uploads/.gitkeep
+!uploads/profiles/.gitkeep
+!uploads/posts/.gitkeep
+!uploads/temp/.gitkeep
