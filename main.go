@@ -7,6 +7,7 @@ import (
 	"github.com/joho/godotenv"
 	"synergazing.com/synergazing/config"
 	"synergazing.com/synergazing/migrations"
+	"synergazing.com/synergazing/routes"
 )
 
 func main() {
@@ -20,9 +21,12 @@ func main() {
 
 	app := fiber.New()
 
+	routes.SetupAuthRoutes(app)
+	routes.SetupProtectedRoutes(app)
+
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello World - GORM Connected!")
 	})
 
-	log.Fatal(app.Listen(":5000"))
+	log.Fatal(app.Listen(":3002"))
 }
