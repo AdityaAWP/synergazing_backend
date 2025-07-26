@@ -31,8 +31,14 @@ func ConnectEnvDBConfig() {
 	}
 
 	var err error
+
+	logLevel := logger.Silent
+	if os.Getenv("APP_ENV") == "development" {
+		logLevel = logger.Info
+	}
+
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logLevel),
 	})
 
 	if err != nil {
