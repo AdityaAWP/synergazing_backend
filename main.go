@@ -21,7 +21,7 @@ func main() {
 
 	app := fiber.New()
 
-	// app.Static("/uploads", "./uploads")
+	app.Static("/storage", "./storage")
 
 	routes.SetupAuthRoutes(app)
 	// routes.SetupProtectedRoutes(app)

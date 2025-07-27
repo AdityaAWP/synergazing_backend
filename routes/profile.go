@@ -6,8 +6,9 @@ import (
 	"synergazing.com/synergazing/middleware"
 )
 
-func SetupProfileRoutes(app *fiber.App)  {
+func SetupProfileRoutes(app *fiber.App) {
 	profile := app.Group("/api/profile", middleware.AuthMiddleware())
 
 	profile.Get("/", handler.GetUserProfile)
+	profile.Put("/update-profile", handler.UpdateProfile)
 }
