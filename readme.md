@@ -1,6 +1,6 @@
-# Proyek Backend Go (Synergazing API)
+# Backend Go Project (Synergazing API)
 
-## ⚙️ Instalasi & Konfigurasi
+## ⚙️ Instalation & Configuration
 
 Follow the following steps to run.
 
