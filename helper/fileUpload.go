@@ -13,10 +13,12 @@ import (
 )
 
 func GetUrlFile(filepath string) string {
+	AppURL := os.Getenv("APP_URL")
 	if filepath == "" {
 		return ""
 	}
-	return "/" + strings.ReplaceAll(filepath, "\\", "/")
+	normalizedPath := strings.ReplaceAll(filepath, "\\", "/")
+	return fmt.Sprintf("%s/%s", AppURL, normalizedPath)
 }
 
 func UploadFile(file *multipart.FileHeader, uploadType string) (string, error) {

@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"net/url"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
@@ -33,5 +35,21 @@ func main() {
 		return c.SendString("Hello World - GORM Connected!")
 	})
 
-	log.Fatal(app.Listen(":3002"))
+	appURL := os.Getenv("APP_URL")
+
+	parsedURL, err := url.Parse(appURL)
+	if err != nil {
+		log.Fatalf("Failed to parse APP_URL: %v", err)
+	}
+
+	port := parsedURL.Port()
+	if port == "" {
+		if parsedURL.Scheme == "https" {
+			port = "443"
+		} else {
+			port = "80"
+		}
+	}
+
+	log.Fatal(app.Listen(":" + port))
 }
