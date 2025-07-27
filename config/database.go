@@ -27,7 +27,7 @@ func ConnectEnvDBConfig() {
 			dbHost, dbUser, dbName, dbPort, dbSSLMode)
 	} else {
 		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-			dbHost, dbUser, dbName, dbPassword, dbPort, dbSSLMode)
+			dbHost, dbUser, dbPassword, dbName, dbPort, dbSSLMode)
 	}
 
 	var err error
@@ -42,7 +42,7 @@ func ConnectEnvDBConfig() {
 	})
 
 	if err != nil {
-		log.Fatalf("Failed to Connect Database")
+		log.Fatalf("Failed to Connect Database", err)
 	}
 	log.Println("Succesfull Connect to Database")
 

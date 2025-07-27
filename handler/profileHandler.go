@@ -44,10 +44,20 @@ func GetUserProfile(c *fiber.Ctx) error {
 			"name":            user.Name,
 			"email":           user.Email,
 			"profile_picture": profilePictureURL,
+			"phone":           user.Phone,
 			"profile": fiber.Map{
-				"id":         profile.ID,
-				"created_at": profile.CreatedAt,
-				"updated_at": profile.UpdatedAt,
+				"id":            profile.ID,
+				"about_me":      profile.AboutMe,
+				"location":      profile.Location,
+				"interests":     profile.Interests,
+				"academic":      profile.Academic,
+				"website_url":   profile.WebsiteURL,
+				"github_url":    profile.GithubURL,
+				"linkedin_url":  profile.LinkedInURL,
+				"instagram_url": profile.InstagramURL,
+				"portfolio_url": profile.PortofolioURL,
+				"created_at":    profile.CreatedAt,
+				"updated_at":    profile.UpdatedAt,
 			},
 		},
 	})
@@ -56,12 +66,10 @@ func GetUserProfile(c *fiber.Ctx) error {
 func UpdateProfile(c *fiber.Ctx) error {
 	userId := c.Locals("user_id").(uint)
 
-	// Get form values
 	newName := c.FormValue("name")
 	newEmail := c.FormValue("email")
 	newPassword := c.FormValue("password")
 
-	// Profile picture is optional
 	file, err := c.FormFile("profile_picture")
 	profilePictureProvided := err == nil
 

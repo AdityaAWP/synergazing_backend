@@ -38,6 +38,7 @@ func main() {
 	appURL := os.Getenv("APP_URL")
 
 	parsedURL, err := url.Parse(appURL)
+
 	if err != nil {
 		log.Fatalf("Failed to parse APP_URL: %v", err)
 	}
