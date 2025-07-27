@@ -19,7 +19,14 @@ func main() {
 	}
 
 	config.ConnectEnvDBConfig()
-	migrations.AutoMigrate(config.GetDB())
+
+	if len(os.Args) > 1 && os.Args[1] == "fresh" {
+		log.Println("Running with fresh migration...")
+		migrations.MigrateFresh(config.GetDB())
+	} else {
+		log.Println("Running with auto migration...")
+		migrations.AutoMigrate(config.GetDB())
+	}
 
 	app := fiber.New()
 
