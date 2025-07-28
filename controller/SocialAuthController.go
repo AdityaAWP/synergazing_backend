@@ -33,11 +33,15 @@ func getGoogleOAuthConfig() *oauth2.Config {
 		log.Printf("Google OAuth Config initialized:")
 		log.Printf("ClientID: %s", googleOauthConfig.ClientID)
 		log.Printf("RedirectURL: %s", googleOauthConfig.RedirectURL)
+		log.Printf("Client Secret length: %d", len(googleOauthConfig.ClientSecret))
 		if googleOauthConfig.RedirectURL == "" {
 			log.Printf("WARNING: GOOGLE_REDIRECT_URI is empty!")
 		}
 		if googleOauthConfig.ClientID == "" {
 			log.Printf("WARNING: GOOGLE_CLIENT_ID is empty!")
+		}
+		if googleOauthConfig.ClientSecret == "" {
+			log.Printf("WARNING: GOOGLE_CLIENT_SECRET is empty!")
 		}
 	})
 	return googleOauthConfig
@@ -60,12 +64,18 @@ func NewSocialController(sas *service.SocialAuthService, as *service.AuthService
 func (c *SocialController) GoogleLogin(ctx *fiber.Ctx) error {
 	config := getGoogleOAuthConfig()
 	url := config.AuthCodeURL(oauthStateString)
-	log.Printf("Redirecting to Google OAuth URL: %s", url)
+	log.Printf("Generated Google OAuth URL: %s", url)
+	log.Printf("Expected callback URL: %s", config.RedirectURL)
 	return ctx.Redirect(url)
 }
 
 func (c *SocialController) GoogleCallback(ctx *fiber.Ctx) error {
+	log.Printf("GoogleCallback called with URL: %s", ctx.OriginalURL())
+	log.Printf("State received: %s", ctx.Query("state"))
+	log.Printf("Code received: %s", ctx.Query("code"))
+
 	if ctx.Query("state") != oauthStateString {
+		log.Printf("State mismatch! Expected: %s, Got: %s", oauthStateString, ctx.Query("state"))
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid state"})
 	}
 
