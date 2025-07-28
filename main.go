@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -60,4 +61,5 @@ func main() {
 	}
 
 	log.Fatal(app.Listen(":" + port))
+	fmt.Println("coba")
 }
