@@ -29,18 +29,27 @@ func AutoMigrate(db *gorm.DB) {
 
 func MigrateFresh(db *gorm.DB) {
 	fmt.Println("Running Migrate Fresh")
-	err := db.Migrator().DropTable(allModels...)
 
-	if err != nil {
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Fatalf("Failed to begin transaction: %v", tx.Error)
+	}
+
+	if err := tx.Migrator().DropTable(allModels...); err != nil {
+		tx.Rollback()
 		log.Fatalf("Failed to drop tables: %v", err)
 	}
+	fmt.Println("Success dropping all tables")
 
-	fmt.Println("Success drop all table")
-	err = db.AutoMigrate(
-		allModels...,
-	)
-	if err != nil {
+	if err := tx.AutoMigrate(allModels...); err != nil {
+		tx.Rollback()
 		log.Fatalf("Failed to auto-migrate: %v", err)
 	}
-	fmt.Println("Success run Auto-migrate")
+	fmt.Println("Success running Auto-migrate")
+
+	if err := tx.Commit().Error; err != nil {
+		log.Fatalf("Failed to commit transaction: %v", err)
+	}
+
+	fmt.Println("Migrate Fresh completed successfully")
 }

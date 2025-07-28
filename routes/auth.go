@@ -2,36 +2,26 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"synergazing.com/synergazing/config"
 	"synergazing.com/synergazing/controller"
-	"synergazing.com/synergazing/middleware"
 	"synergazing.com/synergazing/service"
 )
 
 func SetupAuthRoutes(app *fiber.App) {
+	db := config.GetDB()
 	authService := service.NewAuthService()
+	socialAuthService := service.NewSocialAuthService(db)
+
 	authController := controller.NewAuthController(authService)
+	socialController := controller.NewSocialController(socialAuthService, authService)
 
 	auth := app.Group("/api/auth")
 
-	auth.Post("/Register", authController.Register)
-	auth.Post("/Login", authController.Login)
+	auth.Post("/register", authController.Register)
+	auth.Post("/login", authController.Login)
+	auth.Post("/logout", authController.Logout)
 
-	auth.Post("/Logout", middleware.AuthMiddleware(), authController.Logout)
+	google := auth.Group("/google")
+	google.Get("/login", socialController.GoogleLogin)
+	google.Get("/callback", socialController.GoogleCallback)
 }
-
-// func SetupProtectedRoutes(app *fiber.App) {
-// 	// Create protected API group
-// 	api := app.Group("/api", middleware.AuthMiddleware())
-
-// 	// Example protected routes (you can add more here)
-// 	api.Get("/test", func(c *fiber.Ctx) error {
-// 		userID := c.Locals("user_id").(uint)
-// 		userEmail := c.Locals("user_email").(string)
-
-// 		return c.JSON(fiber.Map{
-// 			"message":    "This is a protected test route",
-// 			"user_id":    userID,
-// 			"user_email": userEmail,
-// 		})
-// 	})
-// }
