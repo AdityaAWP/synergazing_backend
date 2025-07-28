@@ -6,7 +6,7 @@ type Users struct {
 	ID        uint      `json:"id" gorm:"primaryKey"`
 	Name      string    `json:"name" gorm:"not null"`
 	Email     string    `json:"email" gorm:"uniqueIndex;not null"`
-	Password  string    `json:"-" gorm:"not null"`
+	Password  string    `json:"-"`
 	Phone     string    `json:"phone" gorm:"uniqueIndex;"`
 	Role      []*Role   `json:"-" gorm:"many2many:user_roles"`
 	CreatedAt time.Time `json:"created_at"`

@@ -13,6 +13,7 @@ var allModels = []interface{}{
 	&model.Profiles{},
 	&model.Role{},
 	&model.Permission{},
+	&model.SocialAuth{},
 }
 
 func AutoMigrate(db *gorm.DB) {
