@@ -3,6 +3,7 @@ package migrations
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"gorm.io/gorm"
 	"synergazing.com/synergazing/model"
@@ -16,6 +17,14 @@ var allModels = []interface{}{
 	&model.SocialAuth{},
 }
 
+var modelMap = map[string]interface{}{
+	"users":      &model.Users{},
+	"profiles":   &model.Profiles{},
+	"role":       &model.Role{},
+	"permission": &model.Permission{},
+	"socialauth": &model.SocialAuth{},
+}
+
 func AutoMigrate(db *gorm.DB) {
 	fmt.Println("Running Auto Migrate")
 	err := db.AutoMigrate(
@@ -25,6 +34,17 @@ func AutoMigrate(db *gorm.DB) {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
 	fmt.Println("Success run Auto-migrate")
+}
+func DropTableByName(db *gorm.DB, tableName string) {
+	model, exist := modelMap[strings.ToLower(tableName)]
+	if !exist {
+		log.Fatalf("Model for table %s does not exist", tableName)
+	}
+	err := db.Migrator().DropTable(model)
+	if err != nil {
+		log.Fatalf("Failed to drop table %s: %v", tableName, err)
+	}
+	fmt.Printf("Table %s dropped successfully\n", tableName)
 }
 
 func MigrateFresh(db *gorm.DB) {

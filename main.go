@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -20,24 +19,34 @@ func main() {
 	}
 
 	config.ConnectEnvDBConfig()
+	db := config.GetDB()
 
-	if len(os.Args) > 1 && os.Args[1] == "fresh" {
-		log.Println("Running with fresh migration...")
-		migrations.MigrateFresh(config.GetDB())
-	} else {
-		log.Println("Running with auto migration...")
-		migrations.AutoMigrate(config.GetDB())
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "fresh":
+			log.Println("Running with fresh migration...")
+			migrations.MigrateFresh(db)
+			return
+		case "drop":
+			if len(os.Args) < 3 {
+				log.Fatal("Please provide the table name to drop: e.g., `go run main.go drop role`")
+			}
+			tableName := os.Args[2]
+			log.Printf("Dropping table: %s", tableName)
+			migrations.DropTableByName(db, tableName)
+			return
+		}
 	}
+
+	log.Println("Running with auto migration...")
+	migrations.AutoMigrate(db)
 
 	app := fiber.New()
 
 	app.Static("/storage", "./storage")
 
 	routes.SetupAuthRoutes(app)
-	// routes.SetupProtectedRoutes(app)
 	routes.SetupProfileRoutes(app)
-
-	// routes.SetupProfileRoutes(app)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello World - GORM Connected!")
@@ -46,7 +55,6 @@ func main() {
 	appURL := os.Getenv("APP_URL")
 
 	parsedURL, err := url.Parse(appURL)
-
 	if err != nil {
 		log.Fatalf("Failed to parse APP_URL: %v", err)
 	}
@@ -61,5 +69,4 @@ func main() {
 	}
 
 	log.Fatal(app.Listen(":" + port))
-	fmt.Println("cobaxxxx")
 }
