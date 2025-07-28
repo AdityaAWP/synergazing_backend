@@ -7,6 +7,8 @@
 *.dll
 *.so
 *.dylib
+*.bak
+*synergazing
 
 # Test binary, built with `go test -c`
 *.test
@@ -23,6 +25,6 @@ tmp/
 # Storage files (keep directory structure but ignore content)
 storage/*
 !storage/.gitkeep
-!storage/profiles/.gitkeep  
+!storage/profiles/.gitkeep
 !storage/posts/.gitkeep
 !storage/temp/.gitkeep
