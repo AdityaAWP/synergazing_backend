@@ -65,6 +65,7 @@ func UpdateProfile(c *fiber.Ctx) error {
 
 	newName := c.FormValue("name")
 	newEmail := c.FormValue("email")
+	newPhone := c.FormValue("phone")
 	newPassword := c.FormValue("password")
 
 	newAboutMe := c.FormValue("about_me")
@@ -104,6 +105,10 @@ func UpdateProfile(c *fiber.Ctx) error {
 
 	if newName != "" {
 		userUpdates["name"] = newName
+	}
+
+	if newPhone != "" {
+		userUpdates["phone"] = newPhone
 	}
 
 	if newEmail != "" {
