@@ -158,16 +158,13 @@ func UpdateProfile(c *fiber.Ctx) error {
 		profileUpdates["portofolio_url"] = newPortofolioURL
 	}
 
-	// Apply profile updates to the database
-	fmt.Printf("DEBUG - Profile updates to apply: %+v\n", profileUpdates)
 	if len(profileUpdates) > 0 {
 		if err := db.Model(&profile).Updates(profileUpdates).Error; err != nil {
-			fmt.Printf("DEBUG - Error updating profile: %v\n", err)
 			return helper.Message500("Failed to update profile information")
 		}
-		fmt.Printf("DEBUG - Profile updates applied successfully\n")
+		fmt.Printf("Profile updates applied successfully\n")
 	} else {
-		fmt.Printf("DEBUG - No profile updates to apply\n")
+		fmt.Printf("No profile updates to apply\n")
 	}
 
 	var filePath string
