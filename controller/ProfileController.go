@@ -1,6 +1,8 @@
-package handler
+package controller
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 	"synergazing.com/synergazing/config"
@@ -9,28 +11,23 @@ import (
 )
 
 func GetUserProfile(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userId := c.Locals("user_id").(uint)
 
 	db := config.GetDB()
 	var user model.Users
 	var profile model.Profiles
 
-	if err := db.First(&user, userID).Error; err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "User not found",
-		})
+	if err := db.First(&user, userId).Error; err != nil {
+		return helper.Message400("User not found")
 	}
 
-	if err := db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+	if err := db.Where("user_id = ?", userId).First(&profile).Error; err != nil {
 		profile = model.Profiles{
-			UserID:         userID,
+			UserID:         userId,
 			ProfilePicture: "",
 		}
-
 		if err := db.Create(&profile).Error; err != nil {
-			return c.Status(500).JSON(fiber.Map{
-				"error": "Failed to create profile",
-			})
+			return helper.Message500("Failed to create profile")
 		}
 	}
 	user.Password = ""
@@ -70,6 +67,17 @@ func UpdateProfile(c *fiber.Ctx) error {
 	newEmail := c.FormValue("email")
 	newPassword := c.FormValue("password")
 
+	newAboutMe := c.FormValue("about_me")
+	newLocation := c.FormValue("location")
+	newAcademic := c.FormValue("academic")
+	newInterests := c.FormValue("interests")
+
+	newWebsiteURL := c.FormValue("website_url")
+	newGithubURL := c.FormValue("github_url")
+	newLinkedInURL := c.FormValue("linkedin_url")
+	newInstagramURL := c.FormValue("instagram_url")
+	newPortofolioURL := c.FormValue("portfolio_url")
+
 	file, err := c.FormFile("profile_picture")
 	profilePictureProvided := err == nil
 
@@ -77,14 +85,10 @@ func UpdateProfile(c *fiber.Ctx) error {
 	var user model.Users
 	var profile model.Profiles
 
-	// Find the user
 	if err := db.First(&user, userId).Error; err != nil {
-		return c.Status(404).JSON(fiber.Map{
-			"error": "User not found",
-		})
+		return helper.Message404("User not found")
 	}
 
-	// Find or create profile
 	if err := db.Where("user_id = ?", userId).First(&profile).Error; err != nil {
 		profile = model.Profiles{
 			UserID:         userId,
@@ -92,13 +96,10 @@ func UpdateProfile(c *fiber.Ctx) error {
 		}
 
 		if err := db.Create(&profile).Error; err != nil {
-			return c.Status(500).JSON(fiber.Map{
-				"error": "Failed to create profile",
-			})
+			return helper.Message500("Failed to create profile")
 		}
 	}
 
-	// Update user fields if provided
 	userUpdates := make(map[string]interface{})
 
 	if newName != "" {
@@ -106,82 +107,122 @@ func UpdateProfile(c *fiber.Ctx) error {
 	}
 
 	if newEmail != "" {
-		// Check if email already exists (excluding current user)
 		var existingUser model.Users
 		if err := db.Where("email = ? AND id != ?", newEmail, userId).First(&existingUser).Error; err == nil {
-			return c.Status(400).JSON(fiber.Map{
-				"error": "Email already exists",
-			})
+			return helper.Message400("Email already exist")
 		}
 		userUpdates["email"] = newEmail
 	}
 
 	if newPassword != "" {
-		// Hash the new password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{
-				"error": "Failed to hash password",
-			})
+			return helper.Message500("Failed to hash password")
 		}
 		userUpdates["password"] = string(hashedPassword)
 	}
 
-	// Update user if there are changes
 	if len(userUpdates) > 0 {
 		if err := db.Model(&user).Updates(userUpdates).Error; err != nil {
-			return c.Status(500).JSON(fiber.Map{
-				"error": "Failed to update user information",
-			})
+			return helper.Message500("Failed to update user information")
 		}
 	}
 
-	// Handle profile picture update if provided
+	profileUpdates := make(map[string]interface{})
+
+	if newAboutMe != "" {
+		profileUpdates["about_me"] = newAboutMe
+	}
+	if newLocation != "" {
+		profileUpdates["location"] = newLocation
+	}
+	if newAcademic != "" {
+		profileUpdates["academic"] = newAcademic
+	}
+	if newInterests != "" {
+		profileUpdates["interests"] = newInterests
+	}
+	if newWebsiteURL != "" {
+		profileUpdates["website_url"] = newWebsiteURL
+	}
+	if newGithubURL != "" {
+		profileUpdates["github_url"] = newGithubURL
+	}
+	if newLinkedInURL != "" {
+		profileUpdates["linked_in_url"] = newLinkedInURL
+	}
+	if newInstagramURL != "" {
+		profileUpdates["instagram_url"] = newInstagramURL
+	}
+	if newPortofolioURL != "" {
+		profileUpdates["portofolio_url"] = newPortofolioURL
+	}
+
+	// Apply profile updates to the database
+	fmt.Printf("DEBUG - Profile updates to apply: %+v\n", profileUpdates)
+	if len(profileUpdates) > 0 {
+		if err := db.Model(&profile).Updates(profileUpdates).Error; err != nil {
+			fmt.Printf("DEBUG - Error updating profile: %v\n", err)
+			return helper.Message500("Failed to update profile information")
+		}
+		fmt.Printf("DEBUG - Profile updates applied successfully\n")
+	} else {
+		fmt.Printf("DEBUG - No profile updates to apply\n")
+	}
+
 	var filePath string
 	if profilePictureProvided {
-		// Delete old profile picture if exists
 		if profile.ProfilePicture != "" {
 			helper.DeleteFile(profile.ProfilePicture)
 		}
 
-		// Upload new profile picture
 		filePath, err = helper.UploadFile(file, "profile")
 		if err != nil {
-			return c.Status(400).JSON(fiber.Map{
-				"error": err.Error(),
-			})
+			return helper.Message400(err.Error())
 		}
 
-		// Update profile picture in database
 		if err := db.Model(&profile).Update("profile_picture", filePath).Error; err != nil {
 			helper.DeleteFile(filePath)
-			return c.Status(500).JSON(fiber.Map{
-				"error": "Failed to update profile picture",
-			})
+			return helper.Message500("Failed to update profile picture")
 		}
 	}
 
-	// Get updated user data for response
 	var updatedUser model.Users
 	if err := db.First(&updatedUser, userId).Error; err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "Failed to retrieve updated user",
-		})
+		return helper.Message500("Failed to retrieve updated user")
 	}
 	updatedUser.Password = ""
 
-	// Prepare response data
+	var updatedProfile model.Profiles
+	if err := db.Where("user_id = ?", userId).First(&updatedProfile).Error; err != nil {
+		return helper.Message500("Failed to retrieve updated profile")
+	}
+
 	responseData := fiber.Map{
 		"id":    updatedUser.ID,
 		"name":  updatedUser.Name,
 		"email": updatedUser.Email,
+		"phone": updatedUser.Phone,
+		"profile": fiber.Map{
+			"id":            updatedProfile.ID,
+			"about_me":      updatedProfile.AboutMe,
+			"location":      updatedProfile.Location,
+			"interests":     updatedProfile.Interests,
+			"academic":      updatedProfile.Academic,
+			"website_url":   updatedProfile.WebsiteURL,
+			"github_url":    updatedProfile.GithubURL,
+			"linkedin_url":  updatedProfile.LinkedInURL,
+			"instagram_url": updatedProfile.InstagramURL,
+			"portfolio_url": updatedProfile.PortofolioURL,
+			"created_at":    updatedProfile.CreatedAt,
+			"updated_at":    updatedProfile.UpdatedAt,
+		},
 	}
 
-	// Add profile picture URL if updated or exists
 	if profilePictureProvided {
 		responseData["profile_picture"] = helper.GetUrlFile(filePath)
-	} else if profile.ProfilePicture != "" {
-		responseData["profile_picture"] = helper.GetUrlFile(profile.ProfilePicture)
+	} else if updatedProfile.ProfilePicture != "" {
+		responseData["profile_picture"] = helper.GetUrlFile(updatedProfile.ProfilePicture)
 	}
 
 	return c.JSON(fiber.Map{

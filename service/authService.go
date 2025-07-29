@@ -46,11 +46,11 @@ func (s *AuthService) Login(email, password string) (string, *model.Users, error
 
 	var user model.Users
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
-		return "", nil, errors.New("Invalid Credetial")
+		return "", nil, errors.New("Invalid Credetial Email")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return "", nil, errors.New("Invalid Credential")
+		return "", nil, errors.New("Invalid Credential Password")
 	}
 
 	token, err := helper.GenerateJWTToken(user.ID, user.Email)
@@ -66,7 +66,6 @@ func (s *AuthService) Logout(token string) error {
 	return nil
 }
 
-// GenerateTokenForUser creates a JWT token for a given user
 func (s *AuthService) GenerateTokenForUser(userID uint, email string) (string, error) {
 	token, err := helper.GenerateJWTToken(userID, email)
 	if err != nil {
