@@ -7,7 +7,7 @@ import (
 )
 
 func SetupProfileRoutes(app *fiber.App) {
-	profile := app.Group("/api/profile", middleware.AuthMiddleware())
-	profile.Get("/", controller.GetUserProfile)
+	profile := app.Group("/api", middleware.AuthMiddleware())
+	profile.Get("/profile", controller.GetUserProfile)
 	profile.Put("/update-profile", controller.UpdateProfile)
 }
