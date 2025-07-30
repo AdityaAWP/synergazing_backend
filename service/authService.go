@@ -18,7 +18,6 @@ func NewAuthService() *AuthService {
 }
 
 func (s *AuthService) Register(name, email, password string, phone int) (*model.Users, error) {
-	// Validate required fields
 	if name == "" {
 		return nil, errors.New("Name is required")
 	}

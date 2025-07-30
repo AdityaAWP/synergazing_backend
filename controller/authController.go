@@ -38,11 +38,10 @@ func (ctrl *AuthController) Register(c *fiber.Ctx) error {
 		return helper.Message500("Token generation failed")
 	}
 
-	return c.Status(201).JSON(fiber.Map{
-		"message": "User registered successfully",
-		"user":    user,
-		"token":   token,
-	})
+	return helper.Message201(c, fiber.Map{
+		"users": user,
+		"token": token,
+	}, "User registered successfully")
 }
 
 func (ctrl *AuthController) Login(c *fiber.Ctx) error {
@@ -59,11 +58,11 @@ func (ctrl *AuthController) Login(c *fiber.Ctx) error {
 	if err != nil {
 		return helper.Message401(err.Error())
 	}
-	return c.JSON(fiber.Map{
-		"message": "Login Succesful",
-		"user":    user,
-		"token":   token,
-	})
+
+	return helper.Message200(c, fiber.Map{
+		"user":  user,
+		"token": token,
+	}, "Login Succesful")
 }
 
 func (ctrl *AuthController) Logout(c *fiber.Ctx) error {
