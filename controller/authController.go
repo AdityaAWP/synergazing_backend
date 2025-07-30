@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"synergazing.com/synergazing/helper"
 	"synergazing.com/synergazing/service"
 )
 
@@ -24,23 +25,17 @@ func (ctrl *AuthController) Register(c *fiber.Ctx) error {
 	}
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "Invalid request Body",
-		})
+		return helper.Message400("Invalid request Body")
 	}
 
 	user, err := ctrl.AuthService.Register(req.Name, req.Email, req.Password, req.Phone)
 	if err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return helper.Message400(err.Error())
 	}
 
 	token, err := ctrl.AuthService.GenerateTokenForUser(user.ID, user.Email)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "Token generation failed",
-		})
+		return helper.Message500("Token generation failed")
 	}
 
 	return c.Status(201).JSON(fiber.Map{
@@ -57,16 +52,12 @@ func (ctrl *AuthController) Login(c *fiber.Ctx) error {
 	}
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
+		return helper.Message400("Invalid request body")
 	}
 
 	token, user, err := ctrl.AuthService.Login(req.Email, req.Password)
 	if err != nil {
-		return c.Status(401).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return helper.Message401(err.Error())
 	}
 	return c.JSON(fiber.Map{
 		"message": "Login Succesful",
@@ -78,9 +69,7 @@ func (ctrl *AuthController) Login(c *fiber.Ctx) error {
 func (ctrl *AuthController) Logout(c *fiber.Ctx) error {
 	token := c.Get("Authorization")
 	if token == "" {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "No token provided",
-		})
+		return helper.Message400("No token provided")
 	}
 	if len(token) > 7 && token[:7] == "Bearer" {
 		token = token[:7]
@@ -88,9 +77,7 @@ func (ctrl *AuthController) Logout(c *fiber.Ctx) error {
 
 	err := ctrl.AuthService.Logout(token)
 	if err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return helper.Message400(err.Error())
 	}
 
 	return c.JSON(fiber.Map{
