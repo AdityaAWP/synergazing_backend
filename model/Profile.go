@@ -13,11 +13,13 @@ type Profiles struct {
 	Interests string `json:"interests" gorm:"type:text"`
 	Academic  string `json:"academic" gorm:"type:text"`
 
-	WebsiteURL    string `json:"website_url" gorm:"type:text"`
-	GithubURL     string `json:"github_url" gorm:"type:text"`
-	LinkedInURL   string `json:"linkedin_url" gorm:"type:text"`
-	InstagramURL  string `json:"instagram_url" gorm:"type:text"`
-	PortofolioURL string `json:"portfolio_url" gorm:"type:text"`
+	WebsiteURL   string `json:"website_url" gorm:"type:text"`
+	GithubURL    string `json:"github_url" gorm:"type:text"`
+	LinkedInURL  string `json:"linkedin_url" gorm:"type:text"`
+	InstagramURL string `json:"instagram_url" gorm:"type:text"`
+	PortfolioURL string `json:"portfolio_url" gorm:"type:text"`
+
+	CVFile string `json:"cv_file" gorm:"type:text"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

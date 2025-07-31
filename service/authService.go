@@ -17,7 +17,7 @@ func NewAuthService() *AuthService {
 	return &AuthService{}
 }
 
-func (s *AuthService) Register(name, email, password string, phone int) (*model.Users, error) {
+func (s *AuthService) Register(name, email, password string, phone string) (*model.Users, error) {
 	if name == "" {
 		return nil, errors.New("Name is required")
 	}
@@ -30,8 +30,8 @@ func (s *AuthService) Register(name, email, password string, phone int) (*model.
 	if len(password) < 8 {
 		return nil, errors.New("Password must be at least 8 characters")
 	}
-	if phone <= 0 {
-		return nil, errors.New("Phone number must be a positive number")
+	if phone == "" {
+		return nil, errors.New("Phone number is required")
 	}
 
 	db := config.GetDB()

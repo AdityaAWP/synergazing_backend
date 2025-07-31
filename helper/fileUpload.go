@@ -22,12 +22,20 @@ func GetUrlFile(filepath string) string {
 }
 
 func UploadFile(file *multipart.FileHeader, uploadType string) (string, error) {
-	if !isValidateImageType(file.Filename) {
-		return "", fmt.Errorf("invalid file type. Only jpg, jpeg, png, gif are allowed")
-	}
-
-	if file.Size > 2*1024*1024 {
-		return "", fmt.Errorf("file too large, maximum is only 2MB")
+	if uploadType == "cv" {
+		if !isValidatePDFType(file.Filename) {
+			return "", fmt.Errorf("invalid file type. Only PDF files are allowed for CV upload")
+		}
+		if file.Size > 10*1024*1024 {
+			return "", fmt.Errorf("CV file too large, maximum is 10MB")
+		}
+	} else {
+		if !isValidateImageType(file.Filename) {
+			return "", fmt.Errorf("invalid file type. Only jpg, jpeg, png, gif are allowed")
+		}
+		if file.Size > 2*1024*1024 {
+			return "", fmt.Errorf("file too large, maximum is only 2MB")
+		}
 	}
 
 	ext := filepath.Ext(file.Filename)
@@ -39,6 +47,8 @@ func UploadFile(file *multipart.FileHeader, uploadType string) (string, error) {
 		uploadDir = "storage/profiles"
 	case "post":
 		uploadDir = "storage/posts"
+	case "cv":
+		uploadDir = "storage/cv"
 	default:
 		uploadDir = "storage/temp"
 	}
@@ -80,6 +90,11 @@ func isValidateImageType(Filename string) bool {
 		}
 	}
 	return false
+}
+
+func isValidatePDFType(Filename string) bool {
+	ext := strings.ToLower(filepath.Ext(Filename))
+	return ext == ".pdf"
 }
 
 func DeleteFile(filePath string) error {
