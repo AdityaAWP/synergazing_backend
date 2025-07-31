@@ -235,3 +235,63 @@ func (s *ProfileService) GetCVFilePath(userId uint) (string, error) {
 	}
 	return profile.CVFile, nil
 }
+
+func (s *ProfileService) DeleteProfilePicture(userId uint) error {
+	tx := s.DB.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	var profile model.Profiles
+	if err := tx.Where("user_id = ?", userId).First(&profile).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("profile not found")
+	}
+
+	if profile.ProfilePicture == "" {
+		tx.Rollback()
+		return fmt.Errorf("no profile picture to delete")
+	}
+
+	if err := helper.DeleteFile(profile.ProfilePicture); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete file from storage: %w", err)
+	}
+
+	if err := tx.Model(&profile).Update("profile_picture", "").Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to update profile record: %w", err)
+	}
+
+	return tx.Commit().Error
+}
+
+func (s *ProfileService) DeleteCVFile(userId uint) error {
+	tx := s.DB.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	var profile model.Profiles
+	if err := tx.Where("user_id = ?", userId).First(&profile).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("profile not found")
+	}
+
+	if profile.CVFile == "" {
+		tx.Rollback()
+		return fmt.Errorf("no CV file to delete")
+	}
+
+	if err := helper.DeleteFile(profile.CVFile); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete file from storage: %w", err)
+	}
+
+	if err := tx.Model(&profile).Update("cv_file", "").Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to update profile record: %w", err)
+	}
+
+	return tx.Commit().Error
+}

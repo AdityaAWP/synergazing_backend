@@ -17,7 +17,8 @@ func SetupProfileRoutes(app *fiber.App) {
 	profile.Put("/update-profile", profileController.UpdateProfile)
 
 	profile.Get("/users/:id/profile", profileController.GetPublicUserProfile)
-
 	profile.Get("/users/:id/cv", profileController.GetCVFile)
 
+	profile.Delete("/profile/picture", profileController.DeleteProfilePicture)
+	profile.Delete("/profile/cv", profileController.DeleteCVFile)
 }

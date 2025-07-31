@@ -176,7 +176,6 @@ func (ctrl *ProfileController) GetCVFile(c *fiber.Ctx) error {
 		return helper.Message400("Invalid user ID")
 	}
 
-	// Get the file path from the service
 	filePath, err := ctrl.ProfileService.GetCVFilePath(uint(userId))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -189,19 +188,41 @@ func (ctrl *ProfileController) GetCVFile(c *fiber.Ctx) error {
 		return helper.Message404("User has not uploaded a CV")
 	}
 
-	// Check if the file exists on the disk
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return helper.Message404("CV file not found on server")
 	}
 
-	// Check the 'action' query parameter to decide behavior
 	action := c.Query("action")
 
 	if action == "download" {
-		// Set the Content-Disposition header to 'attachment' to force a download
 		return c.Download(filePath)
 	}
 
-	// By default, send the file for inline preview
-	return c.SendFile(filePath, false) // The 'false' means don't compress
+	return c.SendFile(filePath, false)
+}
+
+func (ctrl *ProfileController) DeleteProfilePicture(c *fiber.Ctx) error {
+	userId := c.Locals("user_id").(uint)
+
+	if err := ctrl.ProfileService.DeleteProfilePicture(userId); err != nil {
+		if err.Error() == "no profile picture to delete" {
+			return helper.Message404(err.Error())
+		}
+		return helper.Message500(err.Error())
+	}
+
+	return helper.Message200(c, nil, "Profile picture deleted successfully")
+}
+
+func (ctrl *ProfileController) DeleteCVFile(c *fiber.Ctx) error {
+	userId := c.Locals("user_id").(uint)
+
+	if err := ctrl.ProfileService.DeleteCVFile(userId); err != nil {
+		if err.Error() == "no CV file to delete" {
+			return helper.Message404(err.Error())
+		}
+		return helper.Message500(err.Error())
+	}
+
+	return helper.Message200(c, nil, "CV file deleted successfully")
 }
