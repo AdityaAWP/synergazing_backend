@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"os"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -149,7 +150,6 @@ func (ctrl *ProfileController) GetPublicUserProfile(c *fiber.Ctx) error {
 		return helper.Message500("Could not retrieve user profile")
 	}
 
-	// Map the database models to our public response struct
 	publicResponse := PublicProfileResponse{
 		ID:             user.ID,
 		Name:           user.Name,
@@ -167,4 +167,41 @@ func (ctrl *ProfileController) GetPublicUserProfile(c *fiber.Ctx) error {
 	}
 
 	return helper.Message200(c, publicResponse, "Profile retrieved successfully")
+}
+
+func (ctrl *ProfileController) GetCVFile(c *fiber.Ctx) error {
+	idStr := c.Params("id")
+	userId, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		return helper.Message400("Invalid user ID")
+	}
+
+	// Get the file path from the service
+	filePath, err := ctrl.ProfileService.GetCVFilePath(uint(userId))
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return helper.Message404("Profile not found for this user")
+		}
+		return helper.Message500("Could not retrieve profile")
+	}
+
+	if filePath == "" {
+		return helper.Message404("User has not uploaded a CV")
+	}
+
+	// Check if the file exists on the disk
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return helper.Message404("CV file not found on server")
+	}
+
+	// Check the 'action' query parameter to decide behavior
+	action := c.Query("action")
+
+	if action == "download" {
+		// Set the Content-Disposition header to 'attachment' to force a download
+		return c.Download(filePath)
+	}
+
+	// By default, send the file for inline preview
+	return c.SendFile(filePath, false) // The 'false' means don't compress
 }
