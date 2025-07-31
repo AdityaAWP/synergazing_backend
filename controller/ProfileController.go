@@ -1,10 +1,29 @@
 package controller
 
 import (
+	"strconv"
+
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 	"synergazing.com/synergazing/helper"
 	"synergazing.com/synergazing/service"
 )
+
+type PublicProfileResponse struct {
+	ID             uint   `json:"id"`
+	Name           string `json:"name"`
+	ProfilePicture string `json:"profile_picture"`
+	CVFile         string `json:"cv_file"`
+	AboutMe        string `json:"about_me"`
+	Location       string `json:"location"`
+	Interests      string `json:"interests"`
+	Academic       string `json:"academic"`
+	WebsiteURL     string `json:"website_url"`
+	GithubURL      string `json:"github_url"`
+	LinkedInURL    string `json:"linkedin_url"`
+	InstagramURL   string `json:"instagram_url"`
+	PortofolioURL  string `json:"portfolio_url"`
+}
 
 type ProfileController struct {
 	ProfileService *service.ProfileService
@@ -113,4 +132,39 @@ func (ctrl *ProfileController) UpdateProfile(c *fiber.Ctx) error {
 		"cv_file":         helper.GetUrlFile(profile.CVFile),
 		"profile":         profile,
 	}, "Profile updated successfully")
+}
+
+func (ctrl *ProfileController) GetPublicUserProfile(c *fiber.Ctx) error {
+	idStr := c.Params("id")
+	userId, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		return helper.Message400("Invalid user ID")
+	}
+
+	user, profile, err := ctrl.ProfileService.GetPublicUserProfile(uint(userId))
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return helper.Message404("User not found")
+		}
+		return helper.Message500("Could not retrieve user profile")
+	}
+
+	// Map the database models to our public response struct
+	publicResponse := PublicProfileResponse{
+		ID:             user.ID,
+		Name:           user.Name,
+		ProfilePicture: helper.GetUrlFile(profile.ProfilePicture),
+		CVFile:         helper.GetUrlFile(profile.CVFile),
+		AboutMe:        profile.AboutMe,
+		Location:       profile.Location,
+		Interests:      profile.Interests,
+		Academic:       profile.Academic,
+		WebsiteURL:     profile.WebsiteURL,
+		GithubURL:      profile.GithubURL,
+		LinkedInURL:    profile.LinkedInURL,
+		InstagramURL:   profile.InstagramURL,
+		PortofolioURL:  profile.PortfolioURL,
+	}
+
+	return helper.Message200(c, publicResponse, "Profile retrieved successfully")
 }

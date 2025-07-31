@@ -209,3 +209,25 @@ func (s *ProfileService) UpdateUserProfile(userId uint, data *UpdateProfileDTO) 
 	user.Password = ""
 	return &user, &profile, nil
 }
+
+func (s *ProfileService) GetPublicUserProfile(userId uint) (*model.Users, *model.Profiles, error) {
+	var user model.Users
+	if err := s.DB.First(&user, userId).Error; err != nil {
+		// This will return gorm.ErrRecordNotFound if the user doesn't exist
+		return nil, nil, err
+	}
+
+	var profile model.Profiles
+	if err := s.DB.Where("user_id = ?", userId).First(&profile).Error; err != nil {
+		// A user might exist without a profile record yet, so we can return an empty profile
+		if err == gorm.ErrRecordNotFound {
+			// Return the user with an empty profile struct
+			return &user, &model.Profiles{UserID: userId}, nil
+		}
+		return nil, nil, err
+	}
+
+	// Important: Clear sensitive data before returning
+	user.Password = ""
+	return &user, &profile, nil
+}
