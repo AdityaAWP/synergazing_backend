@@ -9,6 +9,7 @@ type Users struct {
 	Password  string    `json:"-"`
 	Phone     string    `json:"phone" gorm:"uniqueIndex;not null"`
 	Role      []*Role   `json:"-" gorm:"many2many:user_roles"`
+	Skills    []*Skill  `json:"skills,omitempty" gorm:"many2many:user_skills;"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

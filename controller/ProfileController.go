@@ -72,43 +72,68 @@ func (ctrl *ProfileController) UpdateProfile(c *fiber.Ctx) error {
 
 	dto := new(service.UpdateProfileDTO)
 
-	if name := c.FormValue("name"); name != "" {
+	if c.Request().PostArgs().Has("name") {
+		name := c.FormValue("name")
+		if name == "" {
+			return helper.Message400("Name cannot be empty")
+		}
 		dto.Name = &name
 	}
-	if email := c.FormValue("email"); email != "" {
+	if c.Request().PostArgs().Has("email") {
+		email := c.FormValue("email")
+		if email == "" {
+			return helper.Message400("Email cannot be empty")
+		}
 		dto.Email = &email
 	}
-	if phone := c.FormValue("phone"); phone != "" {
+	if c.Request().PostArgs().Has("phone") {
+		phone := c.FormValue("phone")
+		if phone == "" {
+			return helper.Message400("Phone cannot be empty")
+		}
 		dto.Phone = &phone
 	}
-	if password := c.FormValue("password"); password != "" {
-		dto.Password = &password
+
+	if c.Request().PostArgs().Has("password") {
+		password := c.FormValue("password")
+		if password != "" {
+			dto.Password = &password
+		}
 	}
-	if aboutMe := c.FormValue("about_me"); aboutMe != "" {
+	if c.Request().PostArgs().Has("about_me") {
+		aboutMe := c.FormValue("about_me")
 		dto.AboutMe = &aboutMe
 	}
-	if location := c.FormValue("location"); location != "" {
+	if c.Request().PostArgs().Has("location") {
+		location := c.FormValue("location")
 		dto.Location = &location
 	}
-	if interests := c.FormValue("interests"); interests != "" {
+	if c.Request().PostArgs().Has("interests") {
+		interests := c.FormValue("interests")
 		dto.Interests = &interests
 	}
-	if academic := c.FormValue("academic"); academic != "" {
+	if c.Request().PostArgs().Has("academic") {
+		academic := c.FormValue("academic")
 		dto.Academic = &academic
 	}
-	if websiteURL := c.FormValue("website_url"); websiteURL != "" {
+	if c.Request().PostArgs().Has("website_url") {
+		websiteURL := c.FormValue("website_url")
 		dto.WebsiteURL = &websiteURL
 	}
-	if githubURL := c.FormValue("github_url"); githubURL != "" {
+	if c.Request().PostArgs().Has("github_url") {
+		githubURL := c.FormValue("github_url")
 		dto.GithubURL = &githubURL
 	}
-	if linkedInURL := c.FormValue("linkedin_url"); linkedInURL != "" {
+	if c.Request().PostArgs().Has("linkedin_url") {
+		linkedInURL := c.FormValue("linkedin_url")
 		dto.LinkedInURL = &linkedInURL
 	}
-	if instagramURL := c.FormValue("instagram_url"); instagramURL != "" {
+	if c.Request().PostArgs().Has("instagram_url") {
+		instagramURL := c.FormValue("instagram_url")
 		dto.InstagramURL = &instagramURL
 	}
-	if portfolioURL := c.FormValue("portfolio_url"); portfolioURL != "" {
+	if c.Request().PostArgs().Has("portfolio_url") {
+		portfolioURL := c.FormValue("portfolio_url")
 		dto.PortofolioURL = &portfolioURL
 	}
 
