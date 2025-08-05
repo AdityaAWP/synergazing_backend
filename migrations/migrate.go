@@ -15,6 +15,8 @@ var allModels = []interface{}{
 	&model.Role{},
 	&model.Permission{},
 	&model.SocialAuth{},
+	&model.Skill{},
+	&model.UserSkill{},
 }
 
 var modelMap = map[string]interface{}{
@@ -23,6 +25,8 @@ var modelMap = map[string]interface{}{
 	"role":       &model.Role{},
 	"permission": &model.Permission{},
 	"socialauth": &model.SocialAuth{},
+	"skill":      &model.Skill{},
+	"userskill":  &model.UserSkill{},
 }
 
 func AutoMigrate(db *gorm.DB) {
