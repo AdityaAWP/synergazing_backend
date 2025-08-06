@@ -181,3 +181,80 @@ func (s *ChatService) GetChatByID(chatID uint, userID uint) (*model.Chat, error)
 
 	return &chat, nil
 }
+
+// GetUnreadNotifications gets unread message notifications for a user
+func (s *ChatService) GetUnreadNotifications(userID uint) ([]map[string]interface{}, error) {
+	var notifications []map[string]interface{}
+
+	// Get all chats where user is a participant and has unread messages
+	rows, err := s.DB.Raw(`
+		SELECT 
+			c.id as chat_id,
+			CASE 
+				WHEN c.user1_id = ? THEN c.user2_id 
+				ELSE c.user1_id 
+			END as other_user_id,
+			CASE 
+				WHEN c.user1_id = ? THEN u2.name 
+				ELSE u1.name 
+			END as other_user_name,
+			COUNT(m.id) as unread_count,
+			MAX(m.created_at) as last_message_time,
+			(SELECT content FROM messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message_content
+		FROM chats c
+		LEFT JOIN users u1 ON c.user1_id = u1.id
+		LEFT JOIN users u2 ON c.user2_id = u2.id
+		LEFT JOIN messages m ON c.id = m.chat_id AND m.sender_id != ? AND m.is_read = false
+		WHERE (c.user1_id = ? OR c.user2_id = ?)
+		AND EXISTS (SELECT 1 FROM messages WHERE chat_id = c.id AND sender_id != ? AND is_read = false)
+		GROUP BY c.id, other_user_id, other_user_name
+		ORDER BY last_message_time DESC
+	`, userID, userID, userID, userID, userID, userID).Rows()
+
+	if err != nil {
+		return nil, fmt.Errorf("error getting unread notifications: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var chatID, otherUserID uint
+		var otherUserName, lastMessageContent string
+		var unreadCount int
+		var lastMessageTime interface{}
+
+		err := rows.Scan(&chatID, &otherUserID, &otherUserName, &unreadCount, &lastMessageTime, &lastMessageContent)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning notification row: %v", err)
+		}
+
+		notification := map[string]interface{}{
+			"chat_id":              chatID,
+			"other_user_id":        otherUserID,
+			"other_user_name":      otherUserName,
+			"unread_count":         unreadCount,
+			"last_message_time":    lastMessageTime,
+			"last_message_content": lastMessageContent,
+		}
+
+		notifications = append(notifications, notification)
+	}
+
+	return notifications, nil
+}
+
+// GetTotalUnreadCount gets the total number of unread messages for a user
+func (s *ChatService) GetTotalUnreadCount(userID uint) (int, error) {
+	var count int64
+
+	err := s.DB.Model(&model.Message{}).
+		Joins("JOIN chats ON messages.chat_id = chats.id").
+		Where("(chats.user1_id = ? OR chats.user2_id = ?) AND messages.sender_id != ? AND messages.is_read = false",
+			userID, userID, userID).
+		Count(&count).Error
+
+	if err != nil {
+		return 0, fmt.Errorf("error getting total unread count: %v", err)
+	}
+
+	return int(count), nil
+}

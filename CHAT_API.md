@@ -232,6 +232,65 @@ PUT /api/chat/{chat_id}/read
 }
 ```
 
+### 5. Get Unread Message Notifications
+
+```
+GET /api/chat/notifications
+```
+
+**Description:** Gets detailed information about chats with unread messages for the authenticated user.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Notifications retrieved successfully",
+  "data": {
+    "notifications": [
+      {
+        "chat_id": 1,
+        "other_user_id": 2,
+        "other_user_name": "Bob",
+        "unread_count": 3,
+        "last_message_time": "2025-08-07T10:30:00Z",
+        "last_message_content": "Hey, are you available for a call?"
+      },
+      {
+        "chat_id": 3,
+        "other_user_id": 4,
+        "other_user_name": "Charlie",
+        "unread_count": 1,
+        "last_message_time": "2025-08-07T09:15:00Z",
+        "last_message_content": "Thanks for the help!"
+      }
+    ],
+    "total_unread": 4,
+    "notification_count": 2
+  }
+}
+```
+
+### 6. Get Total Unread Count
+
+```
+GET /api/chat/unread-count
+```
+
+**Description:** Gets just the total number of unread messages for the authenticated user. Useful for displaying notification badges.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Unread count retrieved successfully",
+  "data": {
+    "unread_count": 4
+  }
+}
+```
+
 ## Database Schema
 
 ### Chats Table

@@ -341,3 +341,38 @@ func (ctrl *ChatController) MarkChatAsRead(c *fiber.Ctx) error {
 
 	return helper.Message200(c, nil, "Messages marked as read")
 }
+
+// GetNotifications gets unread message notifications for the authenticated user
+func (ctrl *ChatController) GetNotifications(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+
+	notifications, err := ctrl.ChatService.GetUnreadNotifications(userID)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	totalUnread, err := ctrl.ChatService.GetTotalUnreadCount(userID)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, fiber.Map{
+		"notifications":      notifications,
+		"total_unread":       totalUnread,
+		"notification_count": len(notifications),
+	}, "Notifications retrieved successfully")
+}
+
+// GetUnreadCount gets the total unread message count for the authenticated user
+func (ctrl *ChatController) GetUnreadCount(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+
+	count, err := ctrl.ChatService.GetTotalUnreadCount(userID)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, fiber.Map{
+		"unread_count": count,
+	}, "Unread count retrieved successfully")
+}

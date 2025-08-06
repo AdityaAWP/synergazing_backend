@@ -30,4 +30,10 @@ func SetupChatRoutes(app *fiber.App) {
 
 	// Mark chat messages as read
 	api.Put("/:chat_id/read", chatController.MarkChatAsRead)
+
+	// Get notifications for unread messages
+	api.Get("/notifications", chatController.GetNotifications)
+
+	// Get total unread count
+	api.Get("/unread-count", chatController.GetUnreadCount)
 }
