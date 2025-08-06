@@ -93,3 +93,10 @@ func MigrateFresh(db *gorm.DB) {
 
 	fmt.Println("Migrate Fresh completed successfully")
 }
+func CreateCustomEnums(db *gorm.DB) error {
+	err := db.Exec("DO $$ BEGIN CREATE TYPE collaboration_status AS ENUM ('not ready', 'ready'); EXCEPTION WHEN duplicate_object THEN null; END $$;").Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
