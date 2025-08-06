@@ -51,6 +51,7 @@ func main() {
 	routes.SkillRoutes(app)
 	routes.SetupChatRoutes(app)
 	routes.SetupTestRoutes(app)
+	routes.SetupProjectRoutes(app)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello World - GORM Connected!")

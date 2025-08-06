@@ -64,7 +64,7 @@ func (s *SkillService) DeleteUserSkills(userId uint, skillName string) error {
 	tx := s.DB.Begin()
 
 	if tx.Error != nil {
-		return errors.New("Failed to start")
+		return errors.New("Failed to start transaction")
 	}
 
 	var skill model.Skill

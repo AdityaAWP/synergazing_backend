@@ -7,6 +7,9 @@ type Project struct {
 	CreatorID uint  `json:"creator_id" gorm:"not null"`
 	Creator   Users `json:"creator" gorm:"foreignKey:CreatorID"`
 
+	Status          string `json:"status" gorm:"not null;default:'draft'"`
+	CompletionStage int    `json:"completion_stage" gorm:"not null;default:0"`
+
 	Title       string `json:"title" gorm:"not null"`
 	ProjectType string `json:"project_type" gorm:"not null"`
 	Description string `json:"description" gorm:"type:text;not null"`
