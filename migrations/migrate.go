@@ -22,6 +22,8 @@ var allModels = []interface{}{
 	&model.Tag{},
 	&model.ProjectRole{},
 	&model.ProjectMember{},
+	&model.Chat{},
+	&model.Message{},
 }
 
 var modelMap = map[string]interface{}{
@@ -37,6 +39,10 @@ var modelMap = map[string]interface{}{
 	"tag":              &model.Tag{},
 	"projectrole":      &model.ProjectRole{},
 	"projectmember":    &model.ProjectMember{},
+	"chat":             &model.Chat{},
+	"chats":            &model.Chat{},
+	"message":          &model.Message{},
+	"messages":         &model.Message{},
 }
 
 func AutoMigrate(db *gorm.DB) {
