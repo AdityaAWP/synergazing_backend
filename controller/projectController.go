@@ -101,45 +101,45 @@ func (ctrl *ProjectController) UpdateStage4(c *fiber.Ctx) error {
 	return helper.Message200(c, project, "Stage 4 completed. Proceed to finalization.")
 }
 
-func (ctrl *ProjectController) CreateRoles(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
-	projectID, _ := strconv.ParseUint(c.Params("id"), 10, 32)
+// func (ctrl *ProjectController) CreateRoles(c *fiber.Ctx) error {
+// 	userID := c.Locals("user_id").(uint)
+// 	projectID, _ := strconv.ParseUint(c.Params("id"), 10, 32)
 
-	var requestData struct {
-		Roles []service.RoleDTO `json:"roles"`
-	}
+// 	var requestData struct {
+// 		Roles []service.RoleDTO `json:"roles"`
+// 	}
 
-	if err := c.BodyParser(&requestData); err != nil {
-		return helper.Message400("Invalid JSON format: " + err.Error())
-	}
+// 	if err := c.BodyParser(&requestData); err != nil {
+// 		return helper.Message400("Invalid JSON format: " + err.Error())
+// 	}
 
-	project, err := ctrl.projectService.CreateRolesOnly(uint(projectID), userID, requestData.Roles)
-	if err != nil {
-		return helper.Message400(err.Error())
-	}
+// 	project, err := ctrl.projectService.CreateRolesOnly(uint(projectID), userID, requestData.Roles)
+// 	if err != nil {
+// 		return helper.Message400(err.Error())
+// 	}
 
-	return helper.Message200(c, project, "Roles created successfully. Now you can add members.")
-}
+// 	return helper.Message200(c, project, "Roles created successfully. Now you can add members.")
+// }
 
-func (ctrl *ProjectController) AddMembers(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
-	projectID, _ := strconv.ParseUint(c.Params("id"), 10, 32)
+// func (ctrl *ProjectController) AddMembers(c *fiber.Ctx) error {
+// 	userID := c.Locals("user_id").(uint)
+// 	projectID, _ := strconv.ParseUint(c.Params("id"), 10, 32)
 
-	var requestData struct {
-		Members []service.MemberDTO `json:"members"`
-	}
+// 	var requestData struct {
+// 		Members []service.MemberDTO `json:"members"`
+// 	}
 
-	if err := c.BodyParser(&requestData); err != nil {
-		return helper.Message400("Invalid JSON format: " + err.Error())
-	}
+// 	if err := c.BodyParser(&requestData); err != nil {
+// 		return helper.Message400("Invalid JSON format: " + err.Error())
+// 	}
 
-	project, err := ctrl.projectService.AddMembersOnly(uint(projectID), userID, requestData.Members)
-	if err != nil {
-		return helper.Message400(err.Error())
-	}
+// 	project, err := ctrl.projectService.AddMembersOnly(uint(projectID), userID, requestData.Members)
+// 	if err != nil {
+// 		return helper.Message400(err.Error())
+// 	}
 
-	return helper.Message200(c, project, "Members added successfully.")
-}
+// 	return helper.Message200(c, project, "Members added successfully.")
+// }
 
 func (ctrl *ProjectController) UpdateStage5(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)

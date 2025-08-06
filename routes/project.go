@@ -22,8 +22,4 @@ func SetupProjectRoutes(app *fiber.App) {
 	project.Put("/:id/stage3", projectController.UpdateStage3)
 	project.Put("/:id/stage4", projectController.UpdateStage4)
 	project.Put("/:id/stage5", projectController.UpdateStage5)
-
-	project.Post("/:id/roles", projectController.CreateRoles)
-	project.Post("/:id/members", projectController.AddMembers)
-
 }

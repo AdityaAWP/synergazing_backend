@@ -49,7 +49,6 @@ func (s *ProjectService) getProjectForUpdate(tx *gorm.DB, projectID, userID uint
 	return &project, nil
 }
 
-// loadProjectWithRelationships loads a project with all its relationships
 func (s *ProjectService) loadProjectWithRelationships(projectID uint) (*model.Project, error) {
 	var project model.Project
 	if err := s.DB.Preload("Creator").
@@ -57,7 +56,7 @@ func (s *ProjectService) loadProjectWithRelationships(projectID uint) (*model.Pr
 		Preload("Conditions").
 		Preload("Roles.RequiredSkills.Skill").
 		Preload("Members.User").
-		Preload("Members.ProjectRole").
+		Preload("Members.ProjectRole.RequiredSkills.Skill").
 		Preload("Tags").
 		First(&project, projectID).Error; err != nil {
 		return nil, err
@@ -134,13 +133,11 @@ func (s *ProjectService) UpdateStage3(projectID, userID uint, timeCommitment str
 
 	project.TimeCommitment = timeCommitment
 
-	// Delete existing required skills for this project
 	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectRequiredSkill{}).Error; err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	// Create new required skills
 	for _, skillName := range skillNames {
 		skill, err := s.skillService.FindOrCreateWithTx(tx, skillName)
 		if err != nil {
@@ -172,12 +169,10 @@ func (s *ProjectService) UpdateStage3(projectID, userID uint, timeCommitment str
 		return nil, err
 	}
 
-	// Commit the transaction first
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
-	// Now preload the relationships and return the updated project
 	return s.loadProjectWithRelationships(project.ID)
 }
 
@@ -190,6 +185,14 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 	}
 
 	tx.Where("project_id = ?", projectID).Delete(&model.ProjectMember{})
+
+	var existingRoles []model.ProjectRole
+	if err := tx.Where("project_id = ?", projectID).Find(&existingRoles).Error; err == nil {
+		for _, role := range existingRoles {
+			tx.Where("project_role_id = ?", role.ID).Delete(&model.ProjectRoleSkill{})
+		}
+	}
+
 	tx.Where("project_id = ?", projectID).Delete(&model.ProjectRole{})
 
 	roleMap := make(map[string]uint)
@@ -254,12 +257,10 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 		tx.Rollback()
 		return nil, err
 	}
-	// Commit the transaction first
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
-	// Now preload the relationships and return the updated project
 	return s.loadProjectWithRelationships(project.ID)
 }
 
@@ -297,12 +298,10 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefits, timeline
 		tx.Rollback()
 		return nil, err
 	}
-	// Commit the transaction first
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
-	// Now preload the relationships and return the updated project
 	return s.loadProjectWithRelationships(project.ID)
 }
 
@@ -314,7 +313,12 @@ func (s *ProjectService) CreateRolesOnly(projectID, userID uint, roles []RoleDTO
 		return nil, err
 	}
 
-	// Clear existing roles
+	var existingRoles []model.ProjectRole
+	if err := tx.Where("project_id = ?", projectID).Find(&existingRoles).Error; err == nil {
+		for _, role := range existingRoles {
+			tx.Where("project_role_id = ?", role.ID).Delete(&model.ProjectRoleSkill{})
+		}
+	}
 	tx.Where("project_id = ?", projectID).Delete(&model.ProjectRole{})
 
 	for _, roleData := range roles {
@@ -348,12 +352,10 @@ func (s *ProjectService) CreateRolesOnly(projectID, userID uint, roles []RoleDTO
 		}
 	}
 
-	// Commit the transaction first
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
-	// Now preload the relationships and return the updated project
 	return s.loadProjectWithRelationships(project.ID)
 }
 
@@ -365,20 +367,17 @@ func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []Member
 		return nil, err
 	}
 
-	// Get existing roles for this project
 	var existingRoles []model.ProjectRole
 	if err := tx.Where("project_id = ?", projectID).Find(&existingRoles).Error; err != nil {
 		tx.Rollback()
 		return nil, errors.New("failed to fetch project roles")
 	}
 
-	// Build role map
 	roleMap := make(map[string]uint)
 	for _, role := range existingRoles {
 		roleMap[role.Name] = role.ID
 	}
 
-	// Clear existing members
 	tx.Where("project_id = ?", projectID).Delete(&model.ProjectMember{})
 
 	for _, memberData := range members {
@@ -411,12 +410,10 @@ func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []Member
 		tx.Rollback()
 		return nil, err
 	}
-	// Commit the transaction first
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
-	// Now preload the relationships and return the updated project
 	return s.loadProjectWithRelationships(project.ID)
 }
 func (s *ProfileService) UpdateCollaborationStatus(userId uint, status string) (*model.Users, error) {
