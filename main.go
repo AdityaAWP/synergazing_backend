@@ -48,6 +48,7 @@ func main() {
 	routes.SetupAuthRoutes(app)
 	routes.SetupProfileRoutes(app)
 	routes.SetupUserRoutes(app)
+	routes.SkillRoutes(app)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello World - GORM Connected!")

@@ -11,19 +11,20 @@ import (
 )
 
 type PublicProfileResponse struct {
-	ID             uint   `json:"id"`
-	Name           string `json:"name"`
-	ProfilePicture string `json:"profile_picture"`
-	CVFile         string `json:"cv_file"`
-	AboutMe        string `json:"about_me"`
-	Location       string `json:"location"`
-	Interests      string `json:"interests"`
-	Academic       string `json:"academic"`
-	WebsiteURL     string `json:"website_url"`
-	GithubURL      string `json:"github_url"`
-	LinkedInURL    string `json:"linkedin_url"`
-	InstagramURL   string `json:"instagram_url"`
-	PortofolioURL  string `json:"portfolio_url"`
+	ID             uint        `json:"id"`
+	Name           string      `json:"name"`
+	ProfilePicture string      `json:"profile_picture"`
+	CVFile         string      `json:"cv_file"`
+	AboutMe        string      `json:"about_me"`
+	Location       string      `json:"location"`
+	Interests      string      `json:"interests"`
+	Academic       string      `json:"academic"`
+	WebsiteURL     string      `json:"website_url"`
+	GithubURL      string      `json:"github_url"`
+	LinkedInURL    string      `json:"linkedin_url"`
+	InstagramURL   string      `json:"instagram_url"`
+	PortofolioURL  string      `json:"portfolio_url"`
+	Skills         interface{} `json:"skills"`
 }
 
 type ProfileController struct {
@@ -51,6 +52,7 @@ func (ctrl *ProfileController) GetUserProfile(c *fiber.Ctx) error {
 		"phone":           user.Phone,
 		"profile_picture": helper.GetUrlFile(profile.ProfilePicture),
 		"cv_file":         helper.GetUrlFile(profile.CVFile),
+		"skills":          user.UserSkills,
 		"profile": fiber.Map{
 			"about_me":      profile.AboutMe,
 			"location":      profile.Location,
@@ -156,7 +158,8 @@ func (ctrl *ProfileController) UpdateProfile(c *fiber.Ctx) error {
 		"phone":           user.Phone,
 		"profile_picture": helper.GetUrlFile(profile.ProfilePicture),
 		"cv_file":         helper.GetUrlFile(profile.CVFile),
-		"profile":         profile,
+
+		"profile": profile,
 	}, "Profile updated successfully")
 }
 
@@ -189,6 +192,7 @@ func (ctrl *ProfileController) GetPublicUserProfile(c *fiber.Ctx) error {
 		LinkedInURL:    profile.LinkedInURL,
 		InstagramURL:   profile.InstagramURL,
 		PortofolioURL:  profile.PortfolioURL,
+		Skills:         user.UserSkills,
 	}
 
 	return helper.Message200(c, publicResponse, "Profile retrieved successfully")

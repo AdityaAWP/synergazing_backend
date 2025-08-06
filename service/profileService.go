@@ -30,12 +30,15 @@ type UpdateProfileDTO struct {
 }
 
 type ProfileService struct {
-	DB *gorm.DB
+	DB           *gorm.DB
+	SkillService *SkillService
 }
 
 func NewProfileService() *ProfileService {
+	db := config.GetDB()
 	return &ProfileService{
-		DB: config.GetDB(),
+		DB:           db,
+		SkillService: NewSkillService(db),
 	}
 }
 
@@ -43,7 +46,7 @@ func (s *ProfileService) GetUserProfile(userId uint) (*model.Users, *model.Profi
 	var user model.Users
 	var profile model.Profiles
 
-	if err := s.DB.Preload("Role").First(&user, userId).Error; err != nil {
+	if err := s.DB.Preload("Role").Preload("UserSkills.Skill").First(&user, userId).Error; err != nil {
 		return nil, nil, fmt.Errorf("user not found")
 	}
 
@@ -212,7 +215,7 @@ func (s *ProfileService) UpdateUserProfile(userId uint, data *UpdateProfileDTO) 
 
 func (s *ProfileService) GetPublicUserProfile(userId uint) (*model.Users, *model.Profiles, error) {
 	var user model.Users
-	if err := s.DB.First(&user, userId).Error; err != nil {
+	if err := s.DB.Preload("UserSkills.Skill").First(&user, userId).Error; err != nil {
 		return nil, nil, err
 	}
 
@@ -261,6 +264,53 @@ func (s *ProfileService) DeleteProfilePicture(userId uint) error {
 	if err := tx.Model(&profile).Update("profile_picture", "").Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("failed to update profile record: %w", err)
+	}
+
+	return tx.Commit().Error
+}
+
+func (s *ProfileService) UpdateUserSkills(userId uint, skillNames []string, proficiencies []int) error {
+	if len(skillNames) != len(proficiencies) {
+		return fmt.Errorf("skill names and proficiencies length mismatch")
+	}
+
+	tx := s.DB.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Where("user_id = ?", userId).Delete(&model.UserSkill{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete existing skills: %w", err)
+	}
+
+	for i, skillName := range skillNames {
+		if skillName == "" {
+			continue
+		}
+
+		skill, err := s.SkillService.FindOrCreateWithTx(tx, skillName)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("failed to find or create skill '%s': %w", skillName, err)
+		}
+
+		userSkill := model.UserSkill{
+			UserID:      userId,
+			SkillID:     skill.ID,
+			Proficiency: proficiencies[i],
+		}
+
+		if err := tx.Create(&userSkill).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("failed to create user skill association: %w", err)
+		}
 	}
 
 	return tx.Commit().Error
