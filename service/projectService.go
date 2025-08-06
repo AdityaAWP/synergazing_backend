@@ -419,3 +419,17 @@ func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []Member
 	// Now preload the relationships and return the updated project
 	return s.loadProjectWithRelationships(project.ID)
 }
+func (s *ProfileService) UpdateCollaborationStatus(userId uint, status string) (*model.Users, error) {
+	var user model.Users
+	if err := s.DB.First(&user, userId).Error; err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	user.StatusCollaboration = status
+	if err := s.DB.Save(&user).Error; err != nil {
+		return nil, fmt.Errorf("failed to update collaboration status: %w", err)
+	}
+
+	user.Password = ""
+	return &user, nil
+}

@@ -255,3 +255,26 @@ func (ctrl *ProfileController) DeleteCVFile(c *fiber.Ctx) error {
 
 	return helper.Message200(c, nil, "CV file deleted successfully")
 }
+func (ctrl *ProfileController) UpdateCollaborationStatus(c *fiber.Ctx) error {
+	userId := c.Locals("user_id").(uint)
+
+	status := c.FormValue("status")
+	if status == "" {
+		return helper.Message400("Status is required")
+	}
+
+	if status != "not ready" && status != "ready" {
+		return helper.Message400("Status must be either 'not ready' or 'ready'")
+	}
+
+	user, err := ctrl.ProfileService.UpdateCollaborationStatus(userId, status)
+	if err != nil {
+		return helper.Message500(err.Error())
+	}
+
+	return helper.Message200(c, fiber.Map{
+		"id":                   user.ID,
+		"name":                 user.Name,
+		"status_collaboration": user.StatusCollaboration,
+	}, "Collaboration status updated successfully")
+}

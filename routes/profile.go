@@ -21,4 +21,5 @@ func SetupProfileRoutes(app *fiber.App) {
 
 	profile.Delete("/profile/picture", profileController.DeleteProfilePicture)
 	profile.Delete("/profile/cv", profileController.DeleteCVFile)
+	profile.Put("/profile/collaboration-status", profileController.UpdateCollaborationStatus)
 }
