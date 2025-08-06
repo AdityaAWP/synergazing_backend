@@ -1,9 +1,8 @@
 package controller
 
 import (
-	"encoding/json"
-	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -48,8 +47,6 @@ func (ctrl *ProjectController) UpdateStage2(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 	projectID, _ := strconv.ParseUint(c.Params("id"), 10, 32)
 
-	log.Printf("DEBUG Stage2: userID=%d, projectID=%d", userID, uint(projectID))
-
 	var details model.Project
 	details.Duration = c.FormValue("duration")
 	details.TotalTeam, _ = strconv.Atoi(c.FormValue("total_team"))
@@ -87,25 +84,61 @@ func (ctrl *ProjectController) UpdateStage4(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 	projectID, _ := strconv.ParseUint(c.Params("id"), 10, 32)
 
-	rolesJSON := c.FormValue("roles")
-	membersJSON := c.FormValue("members")
-
-	var rolesData []service.RoleDTO
-	if err := json.Unmarshal([]byte(rolesJSON), &rolesData); err != nil {
-		return helper.Message400("Invalid format for roles data")
+	var requestData struct {
+		Roles   []service.RoleDTO   `json:"roles"`
+		Members []service.MemberDTO `json:"members"`
 	}
 
-	var membersData []service.MemberDTO
-	if err := json.Unmarshal([]byte(membersJSON), &membersData); err != nil {
-		return helper.Message400("Invalid format for members data")
+	if err := c.BodyParser(&requestData); err != nil {
+		return helper.Message400("Invalid JSON format: " + err.Error())
 	}
 
-	project, err := ctrl.projectService.UpdateStage4(uint(projectID), userID, rolesData, membersData)
+	project, err := ctrl.projectService.UpdateStage4(uint(projectID), userID, requestData.Roles, requestData.Members)
 	if err != nil {
 		return helper.Message400(err.Error())
 	}
 
 	return helper.Message200(c, project, "Stage 4 completed. Proceed to finalization.")
+}
+
+func (ctrl *ProjectController) CreateRoles(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+	projectID, _ := strconv.ParseUint(c.Params("id"), 10, 32)
+
+	var requestData struct {
+		Roles []service.RoleDTO `json:"roles"`
+	}
+
+	if err := c.BodyParser(&requestData); err != nil {
+		return helper.Message400("Invalid JSON format: " + err.Error())
+	}
+
+	project, err := ctrl.projectService.CreateRolesOnly(uint(projectID), userID, requestData.Roles)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, project, "Roles created successfully. Now you can add members.")
+}
+
+func (ctrl *ProjectController) AddMembers(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+	projectID, _ := strconv.ParseUint(c.Params("id"), 10, 32)
+
+	var requestData struct {
+		Members []service.MemberDTO `json:"members"`
+	}
+
+	if err := c.BodyParser(&requestData); err != nil {
+		return helper.Message400("Invalid JSON format: " + err.Error())
+	}
+
+	project, err := ctrl.projectService.AddMembersOnly(uint(projectID), userID, requestData.Members)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, project, "Members added successfully.")
 }
 
 func (ctrl *ProjectController) UpdateStage5(c *fiber.Ctx) error {
@@ -115,7 +148,31 @@ func (ctrl *ProjectController) UpdateStage5(c *fiber.Ctx) error {
 	benefits := c.FormValue("benefits")
 	timeline := c.FormValue("timeline")
 
-	tagNames, _ := helper.ParseStringSlice(c.FormValue("tags"))
+	// Handle tags - try JSON parsing first, then fallback to comma-separated
+	tagsRaw := c.FormValue("tags")
+	var tagNames []string
+
+	if tagsRaw != "" {
+		// Try JSON parsing first
+		if jsonTags, err := helper.ParseStringSlice(tagsRaw); err == nil && len(jsonTags) > 0 {
+			tagNames = jsonTags
+		} else {
+			// Fallback to comma-separated values
+			tagNames = strings.Split(strings.TrimSpace(tagsRaw), ",")
+			// Clean up each tag
+			for i, tag := range tagNames {
+				tagNames[i] = strings.TrimSpace(tag)
+			}
+			// Remove empty tags
+			var cleanTags []string
+			for _, tag := range tagNames {
+				if tag != "" {
+					cleanTags = append(cleanTags, tag)
+				}
+			}
+			tagNames = cleanTags
+		}
+	}
 
 	project, err := ctrl.projectService.UpdateStage5(uint(projectID), userID, benefits, timeline, tagNames)
 	if err != nil {

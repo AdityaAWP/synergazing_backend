@@ -29,11 +29,12 @@ type Project struct {
 	Benefits string `json:"benefits" gorm:"type:text;not null"`
 	Timeline string `json:"timeline" gorm:"type:text"`
 
-	RequiredSkills []*Skill            `json:"required_skills" gorm:"many2many:project_required_skills;"`
-	Conditions     []*ProjectCondition `json:"conditions" gorm:"foreignKey:ProjectID"`
-	Roles          []*ProjectRole      `json:"roles" gorm:"foreignKey:ProjectID"`
-	Members        []*ProjectMember    `json:"members" gorm:"foreignKey:ProjectID"`
-	Tags           []*Tag              `json:"tags" gorm:"many2many:project_tags;"`
+	// --- Final Relationships ---
+	RequiredSkills []*ProjectRequiredSkill `json:"required_skills" gorm:"foreignKey:ProjectID"`
+	Conditions     []*ProjectCondition     `json:"conditions" gorm:"foreignKey:ProjectID"`
+	Roles          []*ProjectRole          `json:"roles" gorm:"foreignKey:ProjectID"`
+	Members        []*ProjectMember        `json:"members" gorm:"foreignKey:ProjectID"`
+	Tags           []*Tag                  `json:"tags" gorm:"many2many:project_tags;"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

@@ -15,15 +15,15 @@ type ProjectService struct {
 }
 
 type RoleDTO struct {
-	Name           string
-	SlotsAvailable int
-	Description    string
-	SkillNames     []string
+	Name           string   `json:"name"`
+	SlotsAvailable int      `json:"slots_available"`
+	Description    string   `json:"description"`
+	SkillNames     []string `json:"skill_names"`
 }
 
 type MemberDTO struct {
-	Email    string
-	RoleName string
+	Email    string `json:"email"`
+	RoleName string `json:"role_name"`
 }
 
 func NewProjectService(db *gorm.DB, skillService *SkillService, tagService *TagService) *ProjectService {
@@ -45,6 +45,22 @@ func (s *ProjectService) getProjectForUpdate(tx *gorm.DB, projectID, userID uint
 	}
 	if project.CompletionStage < requiredStage {
 		return nil, fmt.Errorf("you must complete the previous stage", requiredStage)
+	}
+	return &project, nil
+}
+
+// loadProjectWithRelationships loads a project with all its relationships
+func (s *ProjectService) loadProjectWithRelationships(projectID uint) (*model.Project, error) {
+	var project model.Project
+	if err := s.DB.Preload("Creator").
+		Preload("RequiredSkills.Skill").
+		Preload("Conditions").
+		Preload("Roles.RequiredSkills.Skill").
+		Preload("Members.User").
+		Preload("Members.ProjectRole").
+		Preload("Tags").
+		First(&project, projectID).Error; err != nil {
+		return nil, err
 	}
 	return &project, nil
 }
@@ -88,7 +104,7 @@ func (s *ProjectService) CreateProjectStage2(ProjectID, userID uint, details mod
 	project.StartDate = details.StartDate
 	project.EndDate = details.EndDate
 	project.Location = details.Location
-	project.WorkerType = details.ProjectType
+	project.WorkerType = details.WorkerType
 	project.Budget = details.Budget
 	project.RegistrationDeadline = details.RegistrationDeadline
 	project.CompletionStage = 2
@@ -118,18 +134,27 @@ func (s *ProjectService) UpdateStage3(projectID, userID uint, timeCommitment str
 
 	project.TimeCommitment = timeCommitment
 
-	var skills []*model.Skill
+	// Delete existing required skills for this project
+	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectRequiredSkill{}).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Create new required skills
 	for _, skillName := range skillNames {
 		skill, err := s.skillService.FindOrCreateWithTx(tx, skillName)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
 		}
-		skills = append(skills, skill)
-	}
-	if err := tx.Model(project).Association("RequiredSkills").Replace(skills); err != nil {
-		tx.Rollback()
-		return nil, err
+		projectSkill := model.ProjectRequiredSkill{
+			ProjectID: projectID,
+			SkillID:   skill.ID,
+		}
+		if err := tx.Create(&projectSkill).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 	}
 
 	tx.Where("project_id = ?", projectID).Delete(&model.ProjectCondition{})
@@ -146,7 +171,14 @@ func (s *ProjectService) UpdateStage3(projectID, userID uint, timeCommitment str
 		tx.Rollback()
 		return nil, err
 	}
-	return project, tx.Commit().Error
+
+	// Commit the transaction first
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	// Now preload the relationships and return the updated project
+	return s.loadProjectWithRelationships(project.ID)
 }
 
 func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, members []MemberDTO) (*model.Project, error) {
@@ -176,18 +208,20 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 		roleMap[role.Name] = role.ID
 
 		if len(roleData.SkillNames) > 0 {
-			var skills []*model.Skill
 			for _, skillName := range roleData.SkillNames {
 				skill, err := s.skillService.FindOrCreateWithTx(tx, skillName)
 				if err != nil {
 					tx.Rollback()
 					return nil, err
 				}
-				skills = append(skills, skill)
-			}
-			if err := tx.Model(&role).Association("RequiredSkills").Append(skills); err != nil {
-				tx.Rollback()
-				return nil, err
+				roleSkill := model.ProjectRoleSkill{
+					ProjectRoleID: role.ID,
+					SkillID:       skill.ID,
+				}
+				if err := tx.Create(&roleSkill).Error; err != nil {
+					tx.Rollback()
+					return nil, err
+				}
 			}
 		}
 	}
@@ -220,7 +254,13 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 		tx.Rollback()
 		return nil, err
 	}
-	return project, tx.Commit().Error
+	// Commit the transaction first
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	// Now preload the relationships and return the updated project
+	return s.loadProjectWithRelationships(project.ID)
 }
 
 func (s *ProjectService) UpdateStage5(projectID, userID uint, benefits, timeline string, tagNames []string) (*model.Project, error) {
@@ -257,5 +297,125 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefits, timeline
 		tx.Rollback()
 		return nil, err
 	}
-	return project, tx.Commit().Error
+	// Commit the transaction first
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	// Now preload the relationships and return the updated project
+	return s.loadProjectWithRelationships(project.ID)
+}
+
+func (s *ProjectService) CreateRolesOnly(projectID, userID uint, roles []RoleDTO) (*model.Project, error) {
+	tx := s.DB.Begin()
+	project, err := s.getProjectForUpdate(tx, projectID, userID, 3)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Clear existing roles
+	tx.Where("project_id = ?", projectID).Delete(&model.ProjectRole{})
+
+	for _, roleData := range roles {
+		role := model.ProjectRole{
+			ProjectID:      project.ID,
+			Name:           roleData.Name,
+			SlotsAvailable: roleData.SlotsAvailable,
+			Description:    roleData.Description,
+		}
+		if err := tx.Create(&role).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		if len(roleData.SkillNames) > 0 {
+			for _, skillName := range roleData.SkillNames {
+				skill, err := s.skillService.FindOrCreateWithTx(tx, skillName)
+				if err != nil {
+					tx.Rollback()
+					return nil, err
+				}
+				roleSkill := model.ProjectRoleSkill{
+					ProjectRoleID: role.ID,
+					SkillID:       skill.ID,
+				}
+				if err := tx.Create(&roleSkill).Error; err != nil {
+					tx.Rollback()
+					return nil, err
+				}
+			}
+		}
+	}
+
+	// Commit the transaction first
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	// Now preload the relationships and return the updated project
+	return s.loadProjectWithRelationships(project.ID)
+}
+
+func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []MemberDTO) (*model.Project, error) {
+	tx := s.DB.Begin()
+	project, err := s.getProjectForUpdate(tx, projectID, userID, 3)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Get existing roles for this project
+	var existingRoles []model.ProjectRole
+	if err := tx.Where("project_id = ?", projectID).Find(&existingRoles).Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("failed to fetch project roles")
+	}
+
+	// Build role map
+	roleMap := make(map[string]uint)
+	for _, role := range existingRoles {
+		roleMap[role.Name] = role.ID
+	}
+
+	// Clear existing members
+	tx.Where("project_id = ?", projectID).Delete(&model.ProjectMember{})
+
+	for _, memberData := range members {
+		var user model.Users
+		if err := tx.Where("email = ?", memberData.Email).First(&user).Error; err != nil {
+			tx.Rollback()
+			return nil, errors.New("user to invite not found: " + memberData.Email)
+		}
+
+		roleID, ok := roleMap[memberData.RoleName]
+		if !ok {
+			tx.Rollback()
+			return nil, errors.New("role specified for member does not exist: " + memberData.RoleName)
+		}
+
+		member := model.ProjectMember{
+			ProjectID:     project.ID,
+			UserID:        user.ID,
+			ProjectRoleID: roleID,
+			Status:        "invited",
+		}
+		if err := tx.Create(&member).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
+
+	project.CompletionStage = 4
+	if err := tx.Save(&project).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	// Commit the transaction first
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	// Now preload the relationships and return the updated project
+	return s.loadProjectWithRelationships(project.ID)
 }
