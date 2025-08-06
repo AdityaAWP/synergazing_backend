@@ -259,3 +259,17 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefits, timeline
 	}
 	return project, tx.Commit().Error
 }
+func (s *ProfileService) UpdateCollaborationStatus(userId uint, status string) (*model.Users, error) {
+	var user model.Users
+	if err := s.DB.First(&user, userId).Error; err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	user.StatusCollaboration = status
+	if err := s.DB.Save(&user).Error; err != nil {
+		return nil, fmt.Errorf("failed to update collaboration status: %w", err)
+	}
+
+	user.Password = ""
+	return &user, nil
+}

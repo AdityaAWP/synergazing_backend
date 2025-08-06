@@ -22,3 +22,12 @@ func ListAllUsers(c *fiber.Ctx) error {
 		"pagination": paginationData,
 	}, "Successfully retrieved users")
 }
+
+func GetReadyUsers(c *fiber.Ctx) error {
+	users, err := service.GetReadyUsers()
+	if err != nil {
+		return helper.Message500("Failed to retrieve ready users")
+	}
+
+	return helper.Message200(c, users, "Ready users retrieved successfully")
+}

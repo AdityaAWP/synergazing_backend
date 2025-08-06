@@ -19,3 +19,19 @@ func GetAllUser() ([]model.Users, error) {
 func GetAllUsersPaginated() *gorm.DB {
 	return config.DB.Model(&model.Users{})
 }
+
+func GetReadyUsers() ([]model.Users, error) {
+	var users []model.Users
+
+	result := config.DB.Preload("UserSkills.Skill").Where("status_collaboration = ?", "ready").Find(&users)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	for i := range users {
+		users[i].Password = ""
+	}
+
+	return users, nil
+}
