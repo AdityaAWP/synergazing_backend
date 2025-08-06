@@ -8,9 +8,9 @@ import (
 )
 
 func SkillRoutes(app *fiber.App) {
-	profileService := service.NewProfileService()
+	skillService := service.NewSkillServiceDefault()
 
-	skillController := controller.NewSkillController(profileService)
+	skillController := controller.NewSkillController(skillService)
 
 	skillGroup := app.Group("/api/skills")
 
@@ -22,5 +22,5 @@ func SkillRoutes(app *fiber.App) {
 
 	skillGroup.Get("/", skillController.GetUserSkills)
 
-	// skillGroup.Delete("/:skillId", skillController.DeleteSkill)
+	skillGroup.Delete("/user/:skillName", skillController.DeleteUserSkill)
 }
