@@ -95,7 +95,6 @@ func (s *ProjectService) transformProjectToResponse(project *model.Project) inte
 		}
 	}
 
-	// Create response structure
 	response := ProjectResponseForMarshal{
 		ID:              project.ID,
 		Title:           project.Title,
@@ -242,7 +241,6 @@ func (s *ProjectService) UpdateStage3(projectID, userID uint, timeCommitment str
 		return nil, err
 	}
 
-	// Return transformed response
 	return s.transformProjectToResponse(projectResult), nil
 }
 
@@ -254,7 +252,6 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 		return nil, err
 	}
 
-	// Delete existing members and their skills
 	var existingMembers []model.ProjectMember
 	if err := tx.Where("project_id = ?", projectID).Find(&existingMembers).Error; err == nil {
 		for _, member := range existingMembers {
@@ -329,7 +326,6 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 			return nil, err
 		}
 
-		// Add member-specific skills
 		if len(memberData.SkillNames) > 0 {
 			for _, skillName := range memberData.SkillNames {
 				skill, err := s.skillService.FindOrCreateWithTx(tx, skillName)
@@ -363,7 +359,6 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 		return nil, err
 	}
 
-	// Return transformed response
 	return s.transformProjectToResponse(projectResult), nil
 }
 
@@ -383,7 +378,6 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, time
 	project.CompletionStage = 5
 	project.Status = "published"
 
-	// Handle benefits
 	if len(benefitNames) > 0 {
 		benefits, err := s.benefitService.findOrCreate(tx, benefitNames)
 		if err != nil {
@@ -391,7 +385,6 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, time
 			return nil, err
 		}
 
-		// Clear existing benefits and create new ProjectBenefit associations
 		if err := tx.Where("project_id = ?", project.ID).Delete(&model.ProjectBenefit{}).Error; err != nil {
 			tx.Rollback()
 			return nil, err
@@ -409,7 +402,6 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, time
 		}
 	}
 
-	// Handle timeline
 	if len(timelineNames) > 0 {
 		timelines, err := s.timelineService.findOrCreate(tx, timelineNames)
 		if err != nil {
@@ -417,7 +409,6 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, time
 			return nil, err
 		}
 
-		// Clear existing timelines and create new ProjectTimeline associations
 		if err := tx.Where("project_id = ?", project.ID).Delete(&model.ProjectTimeline{}).Error; err != nil {
 			tx.Rollback()
 			return nil, err
@@ -435,7 +426,6 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, time
 		}
 	}
 
-	// Handle tags
 	if len(tagNames) > 0 {
 		tags, err := s.tagService.findOrCreate(tx, tagNames)
 		if err != nil {
@@ -443,7 +433,6 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, time
 			return nil, err
 		}
 
-		// Clear existing tags and create new ProjectTag associations
 		if err := tx.Where("project_id = ?", project.ID).Delete(&model.ProjectTag{}).Error; err != nil {
 			tx.Rollback()
 			return nil, err
@@ -474,7 +463,6 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, time
 		return nil, err
 	}
 
-	// Return transformed response
 	return s.transformProjectToResponse(projectResult), nil
 }
 
@@ -534,7 +522,6 @@ func (s *ProjectService) CreateRolesOnly(projectID, userID uint, roles []RoleDTO
 		return nil, err
 	}
 
-	// Return transformed response
 	return s.transformProjectToResponse(projectResult), nil
 }
 
@@ -557,7 +544,6 @@ func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []Member
 		roleMap[role.Name] = role.ID
 	}
 
-	// Delete existing members and their skills
 	var existingMembers []model.ProjectMember
 	if err := tx.Where("project_id = ?", projectID).Find(&existingMembers).Error; err == nil {
 		for _, member := range existingMembers {
@@ -591,7 +577,6 @@ func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []Member
 			return nil, err
 		}
 
-		// Add member-specific skills
 		if len(memberData.SkillNames) > 0 {
 			for _, skillName := range memberData.SkillNames {
 				skill, err := s.skillService.FindOrCreateWithTx(tx, skillName)
@@ -625,7 +610,6 @@ func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []Member
 		return nil, err
 	}
 
-	// Return transformed response
 	return s.transformProjectToResponse(projectResult), nil
 }
 func (s *ProfileService) UpdateCollaborationStatus(userId uint, status string) (*model.Users, error) {
