@@ -222,3 +222,12 @@ func (ctrl *ProjectController) GetMyMemberProjects(c *fiber.Ctx) error {
 
 	return helper.Message200(c, projects, "Member projects retrieved successfully")
 }
+
+func (ctrl *ProjectController) GetAllProjects(c *fiber.Ctx) error {
+	projects, err := ctrl.projectService.GetAllProjects()
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, projects, "All projects retrieved successfully")
+}

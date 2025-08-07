@@ -17,6 +17,9 @@ func SetupProjectRoutes(app *fiber.App) {
 	ProjectService := service.NewProjectService(db, skillService, tagService, benefitService, timelineService)
 	projectController := controller.NewProjectController(ProjectService)
 
+	publicProjects := app.Group("/api/projects")
+	publicProjects.Get("/all", projectController.GetAllProjects)
+
 	project := app.Group("/api/projects", middleware.AuthMiddleware())
 
 	project.Post("/stage1", projectController.CreateStage1)

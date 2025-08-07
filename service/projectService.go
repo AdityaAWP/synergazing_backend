@@ -733,6 +733,35 @@ func (s *ProjectService) GetUserProject(userID, projectID uint) (interface{}, er
 	return s.transformProjectToResponse(projectResult), nil
 }
 
+func (s *ProjectService) GetAllProjects() ([]interface{}, error) {
+	var projects []model.Project
+
+	err := s.DB.Preload("Creator").
+		Preload("RequiredSkills.Skill").
+		Preload("Conditions").
+		Preload("Roles.RequiredSkills.Skill").
+		Preload("Members.User").
+		Preload("Members.ProjectRole.RequiredSkills.Skill").
+		Preload("Members.MemberSkills.Skill").
+		Preload("Tags.Tag").
+		Preload("Benefits.Benefit").
+		Preload("Timeline.Timeline").
+		Where("status != ?", "draft").
+		Find(&projects).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve all projects: %w", err)
+	}
+
+	var responses []interface{}
+	for _, project := range projects {
+		response := s.transformProjectToResponse(&project)
+		responses = append(responses, response)
+	}
+
+	return responses, nil
+}
+
 func (s *ProfileService) UpdateCollaborationStatus(userId uint, status string) (*model.Users, error) {
 	var user model.Users
 	if err := s.DB.First(&user, userId).Error; err != nil {
