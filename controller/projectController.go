@@ -174,3 +174,51 @@ func (ctrl *ProjectController) UpdateStage5(c *fiber.Ctx) error {
 
 	return helper.Message200(c, project, "Project successfully published!")
 }
+
+func (ctrl *ProjectController) GetUserProjects(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+
+	projects, err := ctrl.projectService.GetUserProjects(userID)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, projects, "User projects retrieved successfully")
+}
+
+func (ctrl *ProjectController) GetUserProject(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+	projectID, err := strconv.ParseUint(c.Params("id"), 10, 32)
+	if err != nil {
+		return helper.Message400("Invalid project ID")
+	}
+
+	project, err := ctrl.projectService.GetUserProject(userID, uint(projectID))
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, project, "Project retrieved successfully")
+}
+
+func (ctrl *ProjectController) GetMyCreatedProjects(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+
+	projects, err := ctrl.projectService.GetMyCreatedProjects(userID)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, projects, "Created projects retrieved successfully")
+}
+
+func (ctrl *ProjectController) GetMyMemberProjects(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+
+	projects, err := ctrl.projectService.GetMyMemberProjects(userID)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, projects, "Member projects retrieved successfully")
+}
