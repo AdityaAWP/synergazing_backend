@@ -1,6 +1,11 @@
 package model
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+
+	"synergazing.com/synergazing/helper"
+)
 
 type Project struct {
 	ID        uint  `json:"id" gorm:"primaryKey"`
@@ -20,7 +25,6 @@ type Project struct {
 	StartDate            time.Time `json:"start_date"`
 	EndDate              time.Time `json:"end_date"`
 	Location             string    `json:"location"`
-	WorkerType           string    `json:"worker_type"`
 	Budget               float64   `json:"budget"`
 	RegistrationDeadline time.Time `json:"registration_deadline"`
 
@@ -29,12 +33,11 @@ type Project struct {
 	Benefits string `json:"benefits" gorm:"type:text;not null"`
 	Timeline string `json:"timeline" gorm:"type:text"`
 
-	// --- Final Relationships ---
 	RequiredSkills []*ProjectRequiredSkill `json:"required_skills" gorm:"foreignKey:ProjectID"`
 	Conditions     []*ProjectCondition     `json:"conditions" gorm:"foreignKey:ProjectID"`
 	Roles          []*ProjectRole          `json:"roles" gorm:"foreignKey:ProjectID"`
 	Members        []*ProjectMember        `json:"members" gorm:"foreignKey:ProjectID"`
-	Tags           []*Tag                  `json:"tags" gorm:"many2many:project_tags;"`
+	Tags           []*ProjectTag           `json:"tags" gorm:"foreignKey:ProjectID"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -42,4 +45,15 @@ type Project struct {
 
 func (Project) TableName() string {
 	return "projects"
+}
+
+func (p Project) MarshalJSON() ([]byte, error) {
+	type Alias Project
+	return json.Marshal(&struct {
+		PictureURL string `json:"picture_url"`
+		*Alias
+	}{
+		PictureURL: helper.GetUrlFile(p.PictureURL),
+		Alias:      (*Alias)(&p),
+	})
 }

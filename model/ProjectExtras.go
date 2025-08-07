@@ -23,7 +23,6 @@ func (Tag) TableName() string {
 	return "tags"
 }
 
-// ProjectRequiredSkill is the explicit join table for a Project's required skills.
 type ProjectRequiredSkill struct {
 	ProjectID uint  `json:"project_id" gorm:"primaryKey"`
 	SkillID   uint  `json:"skill_id" gorm:"primaryKey"`
@@ -32,4 +31,14 @@ type ProjectRequiredSkill struct {
 
 func (ProjectRequiredSkill) TableName() string {
 	return "project_required_skills"
+}
+
+type ProjectTag struct {
+	ProjectID uint `json:"project_id" gorm:"primaryKey"`
+	TagID     uint `json:"tag_id" gorm:"primaryKey"`
+	Tag       Tag  `json:"tag" gorm:"foreignKey:TagID"`
+}
+
+func (ProjectTag) TableName() string {
+	return "project_tags"
 }

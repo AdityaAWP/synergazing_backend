@@ -22,8 +22,34 @@ type RoleDTO struct {
 }
 
 type MemberDTO struct {
-	Email    string `json:"email"`
-	RoleName string `json:"role_name"`
+	Name            string   `json:"name"`
+	RoleName        string   `json:"role_name"`
+	RoleDescription string   `json:"role_description"`
+	SkillNames      []string `json:"skill_names"`
+}
+
+type MemberResponse struct {
+	Name            string   `json:"name"`
+	RoleDescription string   `json:"role_description"`
+	RoleName        string   `json:"role_name"`
+	SkillNames      []string `json:"skill_names"`
+}
+
+type ProjectResponse struct {
+	*model.Project
+	Members []MemberResponse `json:"members"`
+}
+
+type ProjectResponseForMarshal struct {
+	ID              uint                 `json:"id"`
+	Title           string               `json:"title"`
+	Description     string               `json:"description"`
+	CompletionStage int                  `json:"completion_stage"`
+	CreatorID       uint                 `json:"creator_id"`
+	Benefits        string               `json:"benefits"`
+	Timeline        string               `json:"timeline"`
+	Members         []MemberResponse     `json:"members"`
+	Roles           []*model.ProjectRole `json:"roles"`
 }
 
 func NewProjectService(db *gorm.DB, skillService *SkillService, tagService *TagService) *ProjectService {
@@ -34,19 +60,51 @@ func NewProjectService(db *gorm.DB, skillService *SkillService, tagService *TagS
 	}
 }
 
-func (s *ProjectService) getProjectForUpdate(tx *gorm.DB, projectID, userID uint, requiredStage int) (*model.Project, error) {
+func (s *ProjectService) getProjectForUpdate(tx *gorm.DB, projectID, userID uint, requiredStage int) (model.Project, error) {
 	var project model.Project
-
 	if err := tx.First(&project, projectID).Error; err != nil {
-		return nil, errors.New("project not found")
+		return project, errors.New("project not found")
 	}
 	if project.CreatorID != userID {
-		return nil, errors.New("you are not authorized for this project")
+		return project, errors.New("you are not authorized to edit this project")
 	}
 	if project.CompletionStage < requiredStage {
-		return nil, fmt.Errorf("you must complete the previous stage", requiredStage)
+		return project, fmt.Errorf("you must complete the previous stage %d", requiredStage)
 	}
-	return &project, nil
+	return project, nil
+}
+
+func (s *ProjectService) transformProjectToResponse(project *model.Project) interface{} {
+	// Transform members to desired format
+	memberResponses := make([]MemberResponse, len(project.Members))
+	for i, member := range project.Members {
+		skillNames := make([]string, len(member.MemberSkills))
+		for j, memberSkill := range member.MemberSkills {
+			skillNames[j] = memberSkill.Skill.Name
+		}
+
+		memberResponses[i] = MemberResponse{
+			Name:            member.User.Name,
+			RoleDescription: member.RoleDescription,
+			RoleName:        member.ProjectRole.Name,
+			SkillNames:      skillNames,
+		}
+	}
+
+	// Create response structure
+	response := ProjectResponseForMarshal{
+		ID:              project.ID,
+		Title:           project.Title,
+		Description:     project.Description,
+		CompletionStage: project.CompletionStage,
+		CreatorID:       project.CreatorID,
+		Benefits:        project.Benefits,
+		Timeline:        project.Timeline,
+		Members:         memberResponses,
+		Roles:           project.Roles,
+	}
+
+	return response
 }
 
 func (s *ProjectService) loadProjectWithRelationships(projectID uint) (*model.Project, error) {
@@ -57,6 +115,7 @@ func (s *ProjectService) loadProjectWithRelationships(projectID uint) (*model.Pr
 		Preload("Roles.RequiredSkills.Skill").
 		Preload("Members.User").
 		Preload("Members.ProjectRole.RequiredSkills.Skill").
+		Preload("Members.MemberSkills.Skill").
 		Preload("Tags").
 		First(&project, projectID).Error; err != nil {
 		return nil, err
@@ -103,7 +162,6 @@ func (s *ProjectService) CreateProjectStage2(ProjectID, userID uint, details mod
 	project.StartDate = details.StartDate
 	project.EndDate = details.EndDate
 	project.Location = details.Location
-	project.WorkerType = details.WorkerType
 	project.Budget = details.Budget
 	project.RegistrationDeadline = details.RegistrationDeadline
 	project.CompletionStage = 2
@@ -112,10 +170,10 @@ func (s *ProjectService) CreateProjectStage2(ProjectID, userID uint, details mod
 		tx.Rollback()
 		return nil, err
 	}
-	return project, tx.Commit().Error
+	return &project, tx.Commit().Error
 }
 
-func (s *ProjectService) UpdateStage3(projectID, userID uint, timeCommitment string, skillNames []string, conditionDescriptions []string) (*model.Project, error) {
+func (s *ProjectService) UpdateStage3(projectID, userID uint, timeCommitment string, skillNames []string, conditionDescriptions []string) (interface{}, error) {
 	tx := s.DB.Begin()
 	project, err := s.getProjectForUpdate(tx, projectID, userID, 2)
 	if err != nil {
@@ -173,10 +231,16 @@ func (s *ProjectService) UpdateStage3(projectID, userID uint, timeCommitment str
 		return nil, err
 	}
 
-	return s.loadProjectWithRelationships(project.ID)
+	projectResult, err := s.loadProjectWithRelationships(project.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return transformed response
+	return s.transformProjectToResponse(projectResult), nil
 }
 
-func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, members []MemberDTO) (*model.Project, error) {
+func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, members []MemberDTO) (interface{}, error) {
 	tx := s.DB.Begin()
 	project, err := s.getProjectForUpdate(tx, projectID, userID, 3)
 	if err != nil {
@@ -184,6 +248,13 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 		return nil, err
 	}
 
+	// Delete existing members and their skills
+	var existingMembers []model.ProjectMember
+	if err := tx.Where("project_id = ?", projectID).Find(&existingMembers).Error; err == nil {
+		for _, member := range existingMembers {
+			tx.Where("project_member_id = ?", member.ID).Delete(&model.ProjectMemberSkill{})
+		}
+	}
 	tx.Where("project_id = ?", projectID).Delete(&model.ProjectMember{})
 
 	var existingRoles []model.ProjectRole
@@ -231,9 +302,9 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 
 	for _, memberData := range members {
 		var user model.Users
-		if err := tx.Where("email = ?", memberData.Email).First(&user).Error; err != nil {
+		if err := tx.Where("name = ?", memberData.Name).First(&user).Error; err != nil {
 			tx.Rollback()
-			return nil, errors.New("user to invite not found: " + memberData.Email)
+			return nil, errors.New("user to invite not found: " + memberData.Name)
 		}
 		roleID, ok := roleMap[memberData.RoleName]
 		if !ok {
@@ -241,14 +312,34 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 			return nil, errors.New("role specified for member does not exist: " + memberData.RoleName)
 		}
 		member := model.ProjectMember{
-			ProjectID:     project.ID,
-			UserID:        user.ID,
-			ProjectRoleID: roleID,
-			Status:        "invited",
+			ProjectID:       project.ID,
+			UserID:          user.ID,
+			ProjectRoleID:   roleID,
+			Status:          "invited",
+			RoleDescription: memberData.RoleDescription,
 		}
 		if err := tx.Create(&member).Error; err != nil {
 			tx.Rollback()
 			return nil, err
+		}
+
+		// Add member-specific skills
+		if len(memberData.SkillNames) > 0 {
+			for _, skillName := range memberData.SkillNames {
+				skill, err := s.skillService.FindOrCreateWithTx(tx, skillName)
+				if err != nil {
+					tx.Rollback()
+					return nil, err
+				}
+				memberSkill := model.ProjectMemberSkill{
+					ProjectMemberID: member.ID,
+					SkillID:         skill.ID,
+				}
+				if err := tx.Create(&memberSkill).Error; err != nil {
+					tx.Rollback()
+					return nil, err
+				}
+			}
 		}
 	}
 
@@ -261,10 +352,16 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 		return nil, err
 	}
 
-	return s.loadProjectWithRelationships(project.ID)
+	projectResult, err := s.loadProjectWithRelationships(project.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return transformed response
+	return s.transformProjectToResponse(projectResult), nil
 }
 
-func (s *ProjectService) UpdateStage5(projectID, userID uint, benefits, timeline string, tagNames []string) (*model.Project, error) {
+func (s *ProjectService) UpdateStage5(projectID, userID uint, benefits, timeline string, tagNames []string) (interface{}, error) {
 	tx := s.DB.Begin()
 	project, err := s.getProjectForUpdate(tx, projectID, userID, 4)
 	if err != nil {
@@ -302,10 +399,16 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefits, timeline
 		return nil, err
 	}
 
-	return s.loadProjectWithRelationships(project.ID)
+	projectResult, err := s.loadProjectWithRelationships(project.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return transformed response
+	return s.transformProjectToResponse(projectResult), nil
 }
 
-func (s *ProjectService) CreateRolesOnly(projectID, userID uint, roles []RoleDTO) (*model.Project, error) {
+func (s *ProjectService) CreateRolesOnly(projectID, userID uint, roles []RoleDTO) (interface{}, error) {
 	tx := s.DB.Begin()
 	project, err := s.getProjectForUpdate(tx, projectID, userID, 3)
 	if err != nil {
@@ -356,10 +459,16 @@ func (s *ProjectService) CreateRolesOnly(projectID, userID uint, roles []RoleDTO
 		return nil, err
 	}
 
-	return s.loadProjectWithRelationships(project.ID)
+	projectResult, err := s.loadProjectWithRelationships(project.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return transformed response
+	return s.transformProjectToResponse(projectResult), nil
 }
 
-func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []MemberDTO) (*model.Project, error) {
+func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []MemberDTO) (interface{}, error) {
 	tx := s.DB.Begin()
 	project, err := s.getProjectForUpdate(tx, projectID, userID, 3)
 	if err != nil {
@@ -378,13 +487,20 @@ func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []Member
 		roleMap[role.Name] = role.ID
 	}
 
+	// Delete existing members and their skills
+	var existingMembers []model.ProjectMember
+	if err := tx.Where("project_id = ?", projectID).Find(&existingMembers).Error; err == nil {
+		for _, member := range existingMembers {
+			tx.Where("project_member_id = ?", member.ID).Delete(&model.ProjectMemberSkill{})
+		}
+	}
 	tx.Where("project_id = ?", projectID).Delete(&model.ProjectMember{})
 
 	for _, memberData := range members {
 		var user model.Users
-		if err := tx.Where("email = ?", memberData.Email).First(&user).Error; err != nil {
+		if err := tx.Where("name = ?", memberData.Name).First(&user).Error; err != nil {
 			tx.Rollback()
-			return nil, errors.New("user to invite not found: " + memberData.Email)
+			return nil, errors.New("user to invite not found: " + memberData.Name)
 		}
 
 		roleID, ok := roleMap[memberData.RoleName]
@@ -394,14 +510,34 @@ func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []Member
 		}
 
 		member := model.ProjectMember{
-			ProjectID:     project.ID,
-			UserID:        user.ID,
-			ProjectRoleID: roleID,
-			Status:        "invited",
+			ProjectID:       project.ID,
+			UserID:          user.ID,
+			ProjectRoleID:   roleID,
+			Status:          "invited",
+			RoleDescription: memberData.RoleDescription,
 		}
 		if err := tx.Create(&member).Error; err != nil {
 			tx.Rollback()
 			return nil, err
+		}
+
+		// Add member-specific skills
+		if len(memberData.SkillNames) > 0 {
+			for _, skillName := range memberData.SkillNames {
+				skill, err := s.skillService.FindOrCreateWithTx(tx, skillName)
+				if err != nil {
+					tx.Rollback()
+					return nil, err
+				}
+				memberSkill := model.ProjectMemberSkill{
+					ProjectMemberID: member.ID,
+					SkillID:         skill.ID,
+				}
+				if err := tx.Create(&memberSkill).Error; err != nil {
+					tx.Rollback()
+					return nil, err
+				}
+			}
 		}
 	}
 
@@ -414,7 +550,13 @@ func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []Member
 		return nil, err
 	}
 
-	return s.loadProjectWithRelationships(project.ID)
+	projectResult, err := s.loadProjectWithRelationships(project.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return transformed response
+	return s.transformProjectToResponse(projectResult), nil
 }
 func (s *ProfileService) UpdateCollaborationStatus(userId uint, status string) (*model.Users, error) {
 	var user model.Users

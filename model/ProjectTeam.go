@@ -18,22 +18,23 @@ func (ProjectRole) TableName() string {
 }
 
 type ProjectMember struct {
-	ID            uint        `json:"id" gorm:"primaryKey"`
-	ProjectID     uint        `json:"project_id" gorm:"not null"`
-	UserID        uint        `json:"user_id" gorm:"not null"`
-	ProjectRoleID uint        `json:"project_role_id" gorm:"not null"`
-	Status        string      `json:"status" gorm:"not null;default:'invited'"`
-	User          Users       `json:"user" gorm:"foreignKey:UserID"`
-	ProjectRole   ProjectRole `json:"project_role" gorm:"foreignKey:ProjectRoleID"`
-	CreatedAt     time.Time   `json:"created_at"`
-	UpdatedAt     time.Time   `json:"updated_at"`
+	ID              uint                  `json:"id" gorm:"primaryKey"`
+	ProjectID       uint                  `json:"project_id" gorm:"not null"`
+	UserID          uint                  `json:"user_id" gorm:"not null"`
+	ProjectRoleID   uint                  `json:"project_role_id" gorm:"not null"`
+	Status          string                `json:"status" gorm:"not null;default:'invited'"`
+	RoleDescription string                `json:"role_description" gorm:"type:text"`
+	User            Users                 `json:"user" gorm:"foreignKey:UserID"`
+	ProjectRole     ProjectRole           `json:"project_role" gorm:"foreignKey:ProjectRoleID"`
+	MemberSkills    []*ProjectMemberSkill `json:"member_skills" gorm:"foreignKey:ProjectMemberID"`
+	CreatedAt       time.Time             `json:"created_at"`
+	UpdatedAt       time.Time             `json:"updated_at"`
 }
 
 func (ProjectMember) TableName() string {
 	return "project_members"
 }
 
-// ProjectRoleSkill is the explicit join table for a Role's required skills.
 type ProjectRoleSkill struct {
 	ProjectRoleID uint  `json:"project_role_id" gorm:"primaryKey"`
 	SkillID       uint  `json:"skill_id" gorm:"primaryKey"`
@@ -42,4 +43,14 @@ type ProjectRoleSkill struct {
 
 func (ProjectRoleSkill) TableName() string {
 	return "project_role_skills"
+}
+
+type ProjectMemberSkill struct {
+	ProjectMemberID uint  `json:"project_member_id" gorm:"primaryKey"`
+	SkillID         uint  `json:"skill_id" gorm:"primaryKey"`
+	Skill           Skill `json:"skill" gorm:"foreignKey:SkillID"`
+}
+
+func (ProjectMemberSkill) TableName() string {
+	return "project_member_skills"
 }

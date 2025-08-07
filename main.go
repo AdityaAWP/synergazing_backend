@@ -35,6 +35,13 @@ func main() {
 			log.Printf("Dropping table: %s", tableName)
 			migrations.DropTableByName(db, tableName)
 			return
+		case "drop-column":
+			log.Println("Dropping worker_type column from projects table...")
+			err := migrations.DropWorkerTypeColumn(db)
+			if err != nil {
+				log.Fatalf("Failed to drop worker_type column: %v", err)
+			}
+			return
 		}
 	}
 
