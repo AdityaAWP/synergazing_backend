@@ -30,8 +30,8 @@ type Project struct {
 
 	TimeCommitment string `json:"time_commitment"`
 
-	Benefits string `json:"benefits" gorm:"type:text;not null"`
-	Timeline string `json:"timeline" gorm:"type:text"`
+	Benefits []*ProjectBenefit  `json:"benefits" gorm:"foreignKey:ProjectID"`
+	Timeline []*ProjectTimeline `json:"timeline" gorm:"foreignKey:ProjectID"`
 
 	RequiredSkills []*ProjectRequiredSkill `json:"required_skills" gorm:"foreignKey:ProjectID"`
 	Conditions     []*ProjectCondition     `json:"conditions" gorm:"foreignKey:ProjectID"`

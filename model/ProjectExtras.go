@@ -23,6 +23,28 @@ func (Tag) TableName() string {
 	return "tags"
 }
 
+type Benefit struct {
+	ID        uint      `json:"id" gorm:"primaryKey"`
+	Name      string    `json:"name" gorm:"unique;not null"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (Benefit) TableName() string {
+	return "benefits"
+}
+
+type Timeline struct {
+	ID        uint      `json:"id" gorm:"primaryKey"`
+	Name      string    `json:"name" gorm:"unique;not null"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (Timeline) TableName() string {
+	return "timelines"
+}
+
 type ProjectRequiredSkill struct {
 	ProjectID uint  `json:"project_id" gorm:"primaryKey"`
 	SkillID   uint  `json:"skill_id" gorm:"primaryKey"`
@@ -41,4 +63,24 @@ type ProjectTag struct {
 
 func (ProjectTag) TableName() string {
 	return "project_tags"
+}
+
+type ProjectBenefit struct {
+	ProjectID uint    `json:"project_id" gorm:"primaryKey"`
+	BenefitID uint    `json:"benefit_id" gorm:"primaryKey"`
+	Benefit   Benefit `json:"benefit" gorm:"foreignKey:BenefitID"`
+}
+
+func (ProjectBenefit) TableName() string {
+	return "project_benefits"
+}
+
+type ProjectTimeline struct {
+	ProjectID  uint     `json:"project_id" gorm:"primaryKey"`
+	TimelineID uint     `json:"timeline_id" gorm:"primaryKey"`
+	Timeline   Timeline `json:"timeline" gorm:"foreignKey:TimelineID"`
+}
+
+func (ProjectTimeline) TableName() string {
+	return "project_timelines"
 }

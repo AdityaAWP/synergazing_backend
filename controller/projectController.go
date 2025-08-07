@@ -104,8 +104,47 @@ func (ctrl *ProjectController) UpdateStage5(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 	projectID, _ := strconv.ParseUint(c.Params("id"), 10, 32)
 
-	benefits := c.FormValue("benefits")
-	timeline := c.FormValue("timeline")
+	benefitsRaw := c.FormValue("benefits")
+	var benefitNames []string
+
+	if benefitsRaw != "" {
+		if jsonBenefits, err := helper.ParseStringSlice(benefitsRaw); err == nil && len(jsonBenefits) > 0 {
+			benefitNames = jsonBenefits
+		} else {
+			benefitNames = strings.Split(strings.TrimSpace(benefitsRaw), ",")
+			for i, benefit := range benefitNames {
+				benefitNames[i] = strings.TrimSpace(benefit)
+			}
+			var cleanBenefits []string
+			for _, benefit := range benefitNames {
+				if benefit != "" {
+					cleanBenefits = append(cleanBenefits, benefit)
+				}
+			}
+			benefitNames = cleanBenefits
+		}
+	}
+
+	timelineRaw := c.FormValue("timeline")
+	var timelineNames []string
+
+	if timelineRaw != "" {
+		if jsonTimelines, err := helper.ParseStringSlice(timelineRaw); err == nil && len(jsonTimelines) > 0 {
+			timelineNames = jsonTimelines
+		} else {
+			timelineNames = strings.Split(strings.TrimSpace(timelineRaw), ",")
+			for i, timeline := range timelineNames {
+				timelineNames[i] = strings.TrimSpace(timeline)
+			}
+			var cleanTimelines []string
+			for _, timeline := range timelineNames {
+				if timeline != "" {
+					cleanTimelines = append(cleanTimelines, timeline)
+				}
+			}
+			timelineNames = cleanTimelines
+		}
+	}
 
 	tagsRaw := c.FormValue("tags")
 	var tagNames []string
@@ -128,7 +167,7 @@ func (ctrl *ProjectController) UpdateStage5(c *fiber.Ctx) error {
 		}
 	}
 
-	project, err := ctrl.projectService.UpdateStage5(uint(projectID), userID, benefits, timeline, tagNames)
+	project, err := ctrl.projectService.UpdateStage5(uint(projectID), userID, benefitNames, timelineNames, tagNames)
 	if err != nil {
 		return helper.Message400(err.Error())
 	}

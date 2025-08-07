@@ -10,31 +10,37 @@ import (
 )
 
 var modelMap = map[string]interface{}{
-	"users":              &model.Users{},
-	"profiles":           &model.Profiles{},
-	"role":               &model.Role{},
-	"permission":         &model.Permission{},
-	"socialauth":         &model.SocialAuth{},
-	"skill":              &model.Skill{},
-	"userskill":          &model.UserSkill{},
-	"project":            &model.Project{},
-	"projectcondition":   &model.ProjectCondition{},
-	"tag":                &model.Tag{},
-	"projectrole":        &model.ProjectRole{},
-	"projectroleskill":   &model.ProjectRoleSkill{},
-	"projectmember":      &model.ProjectMember{},
-	"projectmemberskill": &model.ProjectMemberSkill{},
-	"chat":               &model.Chat{},
-	"chats":              &model.Chat{},
-	"message":            &model.Message{},
-	"messages":           &model.Message{},
+	"users":                &model.Users{},
+	"profiles":             &model.Profiles{},
+	"role":                 &model.Role{},
+	"permission":           &model.Permission{},
+	"socialauth":           &model.SocialAuth{},
+	"skill":                &model.Skill{},
+	"userskill":            &model.UserSkill{},
+	"project":              &model.Project{},
+	"projectcondition":     &model.ProjectCondition{},
+	"tag":                  &model.Tag{},
+	"benefit":              &model.Benefit{},
+	"timeline":             &model.Timeline{},
+	"projecttag":           &model.ProjectTag{},
+	"projectbenefit":       &model.ProjectBenefit{},
+	"projecttimeline":      &model.ProjectTimeline{},
+	"projectrequiredskill": &model.ProjectRequiredSkill{},
+	"projectrole":          &model.ProjectRole{},
+	"projectroleskill":     &model.ProjectRoleSkill{},
+	"projectmember":        &model.ProjectMember{},
+	"projectmemberskill":   &model.ProjectMemberSkill{},
+	"chat":                 &model.Chat{},
+	"chats":                &model.Chat{},
+	"message":              &model.Message{},
+	"messages":             &model.Message{},
 }
 
 func AutoMigrate(db *gorm.DB) {
 	fmt.Println("Running Auto Migrate")
 
 	err := db.AutoMigrate(
-		&model.Users{}, &model.Role{}, &model.Permission{}, &model.Skill{}, &model.Tag{},
+		&model.Users{}, &model.Role{}, &model.Permission{}, &model.Skill{}, &model.Tag{}, &model.Benefit{}, &model.Timeline{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to migrate primary tables: %v", err)
@@ -48,7 +54,7 @@ func AutoMigrate(db *gorm.DB) {
 	}
 
 	err = db.AutoMigrate(
-		&model.ProjectCondition{}, &model.ProjectRole{}, &model.ProjectRoleSkill{}, &model.ProjectMember{}, &model.ProjectMemberSkill{}, &model.Message{},
+		&model.ProjectCondition{}, &model.ProjectRequiredSkill{}, &model.ProjectTag{}, &model.ProjectBenefit{}, &model.ProjectTimeline{}, &model.ProjectRole{}, &model.ProjectRoleSkill{}, &model.ProjectMember{}, &model.ProjectMemberSkill{}, &model.Message{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to migrate final tables: %v", err)
@@ -77,7 +83,7 @@ func MigrateFresh(db *gorm.DB) {
 	}
 
 	modelsToDrop := []interface{}{
-		&model.ProjectMemberSkill{}, &model.ProjectMember{}, &model.ProjectRoleSkill{}, &model.ProjectCondition{}, &model.ProjectRole{}, &model.Message{},
+		&model.ProjectMemberSkill{}, &model.ProjectMember{}, &model.ProjectRoleSkill{}, &model.ProjectCondition{}, &model.ProjectRequiredSkill{}, &model.ProjectTag{}, &model.ProjectBenefit{}, &model.ProjectTimeline{}, &model.ProjectRole{}, &model.Message{},
 	}
 	if err := tx.Migrator().DropTable(modelsToDrop...); err != nil {
 		tx.Rollback()
@@ -93,7 +99,7 @@ func MigrateFresh(db *gorm.DB) {
 	}
 
 	modelsToDrop = []interface{}{
-		&model.Users{}, &model.Role{}, &model.Permission{}, &model.Skill{}, &model.Tag{},
+		&model.Users{}, &model.Role{}, &model.Permission{}, &model.Skill{}, &model.Tag{}, &model.Benefit{}, &model.Timeline{},
 	}
 	if err := tx.Migrator().DropTable(modelsToDrop...); err != nil {
 		tx.Rollback()

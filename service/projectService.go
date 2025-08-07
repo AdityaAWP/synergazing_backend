@@ -9,9 +9,11 @@ import (
 )
 
 type ProjectService struct {
-	DB           *gorm.DB
-	skillService *SkillService
-	tagService   *TagService
+	DB              *gorm.DB
+	skillService    *SkillService
+	tagService      *TagService
+	benefitService  *BenefitService
+	timelineService *TimelineService
 }
 
 type RoleDTO struct {
@@ -41,22 +43,24 @@ type ProjectResponse struct {
 }
 
 type ProjectResponseForMarshal struct {
-	ID              uint                 `json:"id"`
-	Title           string               `json:"title"`
-	Description     string               `json:"description"`
-	CompletionStage int                  `json:"completion_stage"`
-	CreatorID       uint                 `json:"creator_id"`
-	Benefits        string               `json:"benefits"`
-	Timeline        string               `json:"timeline"`
-	Members         []MemberResponse     `json:"members"`
-	Roles           []*model.ProjectRole `json:"roles"`
+	ID              uint                     `json:"id"`
+	Title           string                   `json:"title"`
+	Description     string                   `json:"description"`
+	CompletionStage int                      `json:"completion_stage"`
+	CreatorID       uint                     `json:"creator_id"`
+	Benefits        []*model.ProjectBenefit  `json:"benefits"`
+	Timeline        []*model.ProjectTimeline `json:"timeline"`
+	Members         []MemberResponse         `json:"members"`
+	Roles           []*model.ProjectRole     `json:"roles"`
 }
 
-func NewProjectService(db *gorm.DB, skillService *SkillService, tagService *TagService) *ProjectService {
+func NewProjectService(db *gorm.DB, skillService *SkillService, tagService *TagService, benefitService *BenefitService, timelineService *TimelineService) *ProjectService {
 	return &ProjectService{
-		DB:           db,
-		skillService: skillService,
-		tagService:   tagService,
+		DB:              db,
+		skillService:    skillService,
+		tagService:      tagService,
+		benefitService:  benefitService,
+		timelineService: timelineService,
 	}
 }
 
@@ -116,7 +120,9 @@ func (s *ProjectService) loadProjectWithRelationships(projectID uint) (*model.Pr
 		Preload("Members.User").
 		Preload("Members.ProjectRole.RequiredSkills.Skill").
 		Preload("Members.MemberSkills.Skill").
-		Preload("Tags").
+		Preload("Tags.Tag").
+		Preload("Benefits.Benefit").
+		Preload("Timeline.Timeline").
 		First(&project, projectID).Error; err != nil {
 		return nil, err
 	}
@@ -361,7 +367,7 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 	return s.transformProjectToResponse(projectResult), nil
 }
 
-func (s *ProjectService) UpdateStage5(projectID, userID uint, benefits, timeline string, tagNames []string) (interface{}, error) {
+func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, timelineNames, tagNames []string) (interface{}, error) {
 	tx := s.DB.Begin()
 	project, err := s.getProjectForUpdate(tx, projectID, userID, 4)
 	if err != nil {
@@ -369,25 +375,89 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefits, timeline
 		return nil, err
 	}
 
-	if benefits == "" {
+	if len(benefitNames) == 0 {
 		tx.Rollback()
-		return nil, errors.New("benefits field is required")
+		return nil, errors.New("at least one benefit is required")
 	}
 
-	project.Benefits = benefits
-	project.Timeline = timeline
 	project.CompletionStage = 5
 	project.Status = "published"
 
+	// Handle benefits
+	if len(benefitNames) > 0 {
+		benefits, err := s.benefitService.findOrCreate(tx, benefitNames)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		// Clear existing benefits and create new ProjectBenefit associations
+		if err := tx.Where("project_id = ?", project.ID).Delete(&model.ProjectBenefit{}).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		for _, benefit := range benefits {
+			projectBenefit := &model.ProjectBenefit{
+				ProjectID: project.ID,
+				BenefitID: benefit.ID,
+			}
+			if err := tx.Create(projectBenefit).Error; err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+	}
+
+	// Handle timeline
+	if len(timelineNames) > 0 {
+		timelines, err := s.timelineService.findOrCreate(tx, timelineNames)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		// Clear existing timelines and create new ProjectTimeline associations
+		if err := tx.Where("project_id = ?", project.ID).Delete(&model.ProjectTimeline{}).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		for _, timeline := range timelines {
+			projectTimeline := &model.ProjectTimeline{
+				ProjectID:  project.ID,
+				TimelineID: timeline.ID,
+			}
+			if err := tx.Create(projectTimeline).Error; err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+	}
+
+	// Handle tags
 	if len(tagNames) > 0 {
 		tags, err := s.tagService.findOrCreate(tx, tagNames)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
 		}
-		if err := tx.Model(project).Association("Tags").Replace(tags); err != nil {
+
+		// Clear existing tags and create new ProjectTag associations
+		if err := tx.Where("project_id = ?", project.ID).Delete(&model.ProjectTag{}).Error; err != nil {
 			tx.Rollback()
 			return nil, err
+		}
+
+		for _, tag := range tags {
+			projectTag := &model.ProjectTag{
+				ProjectID: project.ID,
+				TagID:     tag.ID,
+			}
+			if err := tx.Create(projectTag).Error; err != nil {
+				tx.Rollback()
+				return nil, err
+			}
 		}
 	}
 

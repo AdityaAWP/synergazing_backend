@@ -12,7 +12,9 @@ func SetupProjectRoutes(app *fiber.App) {
 	db := config.GetDB()
 	skillService := service.NewSkillService(db)
 	tagService := service.NewTagService(db)
-	ProjectService := service.NewProjectService(db, skillService, tagService)
+	benefitService := service.NewBenefitService(db)
+	timelineService := service.NewTimelineService(db)
+	ProjectService := service.NewProjectService(db, skillService, tagService, benefitService, timelineService)
 	projectController := controller.NewProjectController(ProjectService)
 
 	project := app.Group("/api/projects", middleware.AuthMiddleware())
