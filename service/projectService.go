@@ -762,6 +762,23 @@ func (s *ProjectService) GetAllProjects() ([]interface{}, error) {
 	return responses, nil
 }
 
+// GetProjectByID retrieves a single project by ID without authentication (public access)
+func (s *ProjectService) GetProjectByID(projectID uint) (interface{}, error) {
+	var project model.Project
+
+	err := s.DB.Where("id = ? AND status != ?", projectID, "draft").First(&project).Error
+	if err != nil {
+		return nil, fmt.Errorf("project not found")
+	}
+
+	projectResult, err := s.loadProjectWithRelationships(projectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load project: %w", err)
+	}
+
+	return s.transformProjectToResponse(projectResult), nil
+}
+
 func (s *ProfileService) UpdateCollaborationStatus(userId uint, status string) (*model.Users, error) {
 	var user model.Users
 	if err := s.DB.First(&user, userId).Error; err != nil {

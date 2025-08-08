@@ -19,6 +19,7 @@ func SetupProjectRoutes(app *fiber.App) {
 
 	publicProjects := app.Group("/api/projects")
 	publicProjects.Get("/all", projectController.GetAllProjects)
+	publicProjects.Get("/public/:id", projectController.GetProjectByID)
 
 	project := app.Group("/api/projects", middleware.AuthMiddleware())
 

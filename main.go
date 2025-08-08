@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 	"synergazing.com/synergazing/config"
 	"synergazing.com/synergazing/migrations"
@@ -49,7 +50,7 @@ func main() {
 	migrations.AutoMigrate(db)
 
 	app := fiber.New()
-
+	app.Use(cors.New())
 	app.Static("/storage", "./storage")
 
 	routes.SetupAuthRoutes(app)

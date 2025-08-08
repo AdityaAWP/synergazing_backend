@@ -231,3 +231,17 @@ func (ctrl *ProjectController) GetAllProjects(c *fiber.Ctx) error {
 
 	return helper.Message200(c, projects, "All projects retrieved successfully")
 }
+
+func (ctrl *ProjectController) GetProjectByID(c *fiber.Ctx) error {
+	projectID, err := strconv.ParseUint(c.Params("id"), 10, 32)
+	if err != nil {
+		return helper.Message400("Invalid project ID")
+	}
+
+	project, err := ctrl.projectService.GetProjectByID(uint(projectID))
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, project, "Project retrieved successfully")
+}
