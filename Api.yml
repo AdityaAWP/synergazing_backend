@@ -5,9 +5,9 @@ info:
   version: 1.0.0
   contact:
     name: Synergazing Team
-    url: http://127.0.0.1:3002
+    url: https://synergazing.bahasakita.store
 servers:
-  - url: http://127.0.0.1:3002
+  - url: https://synergazing.bahasakita.store
     description: Development server
 components:
   securitySchemes:
