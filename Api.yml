@@ -1,0 +1,1103 @@
+openapi: 3.0.3
+info:
+  title: Synergazing API
+  description: Real-time collaboration platform API with chat, project management, and user profiles
+  version: 1.0.0
+  contact:
+    name: Synergazing Team
+    url: http://127.0.0.1:3002
+servers:
+  - url: http://127.0.0.1:3002
+    description: Development server
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        status_collaboration:
+          type: string
+          enum:
+            - not ready
+            - ready
+        user_skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSkill'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    UserSkill:
+      type: object
+      properties:
+        skill:
+          $ref: '#/components/schemas/Skill'
+        proficiency:
+          type: integer
+          minimum: 1
+          maximum: 10
+    Skill:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        creator_id:
+          type: integer
+        creator:
+          $ref: '#/components/schemas/User'
+        title:
+          type: string
+        project_type:
+          type: string
+        description:
+          type: string
+        picture_url:
+          type: string
+        status:
+          type: string
+          default: draft
+        completion_stage:
+          type: integer
+          default: 0
+        duration:
+          type: string
+        total_team:
+          type: integer
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        location:
+          type: string
+        budget:
+          type: number
+        registration_deadline:
+          type: string
+          format: date-time
+        time_commitment:
+          type: string
+        benefits:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectBenefit'
+        timeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectTimeline'
+        required_skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectRequiredSkill'
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectRole'
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectMember'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectTag'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Chat:
+      type: object
+      properties:
+        id:
+          type: integer
+        user1_id:
+          type: integer
+        user2_id:
+          type: integer
+        user1:
+          $ref: '#/components/schemas/User'
+        user2:
+          $ref: '#/components/schemas/User'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        chat_id:
+          type: integer
+        sender_id:
+          type: integer
+        content:
+          type: string
+        is_read:
+          type: boolean
+        sender:
+          $ref: '#/components/schemas/User'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Profile:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        profile_picture:
+          type: string
+        cv_file:
+          type: string
+        about_me:
+          type: string
+        location:
+          type: string
+        interests:
+          type: string
+        academic:
+          type: string
+        website_url:
+          type: string
+        github_url:
+          type: string
+        linkedin_url:
+          type: string
+        instagram_url:
+          type: string
+        portfolio_url:
+          type: string
+        skills:
+          type: object
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+    PaginationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            users:
+              type: array
+              items:
+                $ref: '#/components/schemas/User'
+            pagination:
+              type: object
+              properties:
+                total_records:
+                  type: integer
+                total_pages:
+                  type: integer
+                current_page:
+                  type: integer
+                per_page:
+                  type: integer
+                next_page:
+                  type: integer
+                  nullable: true
+                prev_page:
+                  type: integer
+                  nullable: true
+    ProjectBenefit:
+      type: object
+    ProjectTimeline:
+      type: object
+    ProjectRequiredSkill:
+      type: object
+    ProjectRole:
+      type: object
+    ProjectMember:
+      type: object
+    ProjectTag:
+      type: object
+paths:
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+                phone:
+                  type: string
+              required:
+                - name
+                - email
+                - password
+                - phone
+      responses:
+        '200':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/auth/google/login:
+    get:
+      tags:
+        - Authentication
+      summary: Initiate Google OAuth login
+      responses:
+        '302':
+          description: Redirect to Google OAuth
+  /api/auth/google/callback:
+    get:
+      tags:
+        - Authentication
+      summary: Google OAuth callback
+      responses:
+        '200':
+          description: OAuth callback processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/users:
+    get:
+      tags:
+        - Users
+      summary: Get all users with pagination
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginationResponse'
+  /api/users/ready:
+    get:
+      tags:
+        - Users
+      summary: Get users with 'ready' collaboration status
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Ready users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+  /api/profile:
+    get:
+      tags:
+        - Profile
+      summary: Get current user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/update-profile:
+    put:
+      tags:
+        - Profile
+      summary: Update user profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                about_me:
+                  type: string
+                location:
+                  type: string
+                interests:
+                  type: string
+                academic:
+                  type: string
+                website_url:
+                  type: string
+                github_url:
+                  type: string
+                linkedin_url:
+                  type: string
+                instagram_url:
+                  type: string
+                portfolio_url:
+                  type: string
+                profile_picture:
+                  type: string
+                  format: binary
+                cv_file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/profile/collaboration-status:
+    put:
+      tags:
+        - Profile
+      summary: Update collaboration status
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - not ready
+                    - ready
+              required:
+                - status
+      responses:
+        '200':
+          description: Collaboration status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/users/{id}/profile:
+    get:
+      tags:
+        - Profile
+      summary: Get public user profile
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Public profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/users/{id}/cv:
+    get:
+      tags:
+        - Profile
+      summary: Download user CV file
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: CV file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+  /api/profile/picture:
+    delete:
+      tags:
+        - Profile
+      summary: Delete profile picture
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile picture deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/profile/cv:
+    delete:
+      tags:
+        - Profile
+      summary: Delete CV file
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: CV file deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/skills/all:
+    get:
+      tags:
+        - Skills
+      summary: Get all available skills
+      responses:
+        '200':
+          description: Skills retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Skill'
+  /api/skills:
+    get:
+      tags:
+        - Skills
+      summary: Get user skills
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User skills retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    post:
+      tags:
+        - Skills
+      summary: Update user skills
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                skills:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      skill_name:
+                        type: string
+                      proficiency:
+                        type: integer
+                        minimum: 1
+                        maximum: 10
+      responses:
+        '200':
+          description: Skills updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/skills/user/{skillName}:
+    delete:
+      tags:
+        - Skills
+      summary: Delete user skill
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: skillName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Skill deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/projects/all:
+    get:
+      tags:
+        - Projects
+      summary: Get all public projects
+      responses:
+        '200':
+          description: Projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/projects/public/{id}:
+    get:
+      tags:
+        - Projects
+      summary: Get public project by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Project retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/projects:
+    get:
+      tags:
+        - Projects
+      summary: Get user projects
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/projects/stage1:
+    post:
+      tags:
+        - Projects
+      summary: Create project stage 1
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                project_type:
+                  type: string
+                description:
+                  type: string
+                picture:
+                  type: string
+                  format: binary
+              required:
+                - title
+                - project_type
+                - description
+      responses:
+        '200':
+          description: Project stage 1 created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/projects/{id}/stage2:
+    put:
+      tags:
+        - Projects
+      summary: Update project stage 2
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Project stage 2 updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/projects/{id}/stage3:
+    put:
+      tags:
+        - Projects
+      summary: Update project stage 3
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Project stage 3 updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/projects/{id}/stage4:
+    put:
+      tags:
+        - Projects
+      summary: Update project stage 4
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Project stage 4 updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/projects/{id}/stage5:
+    put:
+      tags:
+        - Projects
+      summary: Update project stage 5
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Project stage 5 updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/projects/created:
+    get:
+      tags:
+        - Projects
+      summary: Get my created projects
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Created projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/projects/member:
+    get:
+      tags:
+        - Projects
+      summary: Get projects where I'm a member
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Member projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/projects/{id}:
+    get:
+      tags:
+        - Projects
+      summary: Get user project by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Project retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/chat/with/{user_id}:
+    get:
+      tags:
+        - Chat
+      summary: Get or create chat with another user
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Chat retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Chat'
+  /api/chat:
+    get:
+      tags:
+        - Chat
+      summary: Get all user chats
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Chats retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Chat'
+  /api/chat/{chat_id}/messages:
+    get:
+      tags:
+        - Chat
+      summary: Get chat messages
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: chat_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      messages:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Message'
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+  /api/chat/{chat_id}/read:
+    put:
+      tags:
+        - Chat
+      summary: Mark chat messages as read
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: chat_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Messages marked as read successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/chat/notifications:
+    get:
+      tags:
+        - Chat
+      summary: Get unread message notifications
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/chat/unread-count:
+    get:
+      tags:
+        - Chat
+      summary: Get total unread message count
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Unread count retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      unread_count:
+                        type: integer
+  /ws/chat:
+    get:
+      tags:
+        - WebSocket
+      summary: WebSocket connection for real-time chat
+      description: Connect to WebSocket for real-time messaging. Use query parameters user_id and token
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '101':
+          description: WebSocket connection established
+  /test/users:
+    post:
+      tags:
+        - Testing
+      summary: Create test users
+      responses:
+        '200':
+          description: Test users created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /test/chat:
+    post:
+      tags:
+        - Testing
+      summary: Create test chat
+      responses:
+        '200':
+          description: Test chat created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /test/token/{user_id}:
+    get:
+      tags:
+        - Testing
+      summary: Get test token for a user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Test token retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /test/data:
+    get:
+      tags:
+        - Testing
+      summary: List all test data
+      responses:
+        '200':
+          description: Test data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+tags:
+  - name: Authentication
+    description: User authentication and OAuth endpoints
+  - name: Users
+    description: User management and listing endpoints
+  - name: Profile
+    description: User profile management endpoints
+  - name: Skills
+    description: Skill management endpoints
+  - name: Projects
+    description: Project management endpoints
+  - name: Chat
+    description: Real-time chat and messaging endpoints
+  - name: WebSocket
+    description: WebSocket connections for real-time features
+  - name: Testing
+    description: Testing utilities and data creation endpoints
