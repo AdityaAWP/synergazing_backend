@@ -43,15 +43,32 @@ type ProjectResponse struct {
 }
 
 type ProjectResponseForMarshal struct {
-	ID              uint                     `json:"id"`
-	Title           string                   `json:"title"`
-	Description     string                   `json:"description"`
-	CompletionStage int                      `json:"completion_stage"`
-	CreatorID       uint                     `json:"creator_id"`
-	Benefits        []*model.ProjectBenefit  `json:"benefits"`
-	Timeline        []*model.ProjectTimeline `json:"timeline"`
-	Members         []MemberResponse         `json:"members"`
-	Roles           []*model.ProjectRole     `json:"roles"`
+	ID                   uint                          `json:"id"`
+	Title                string                        `json:"title"`
+	Description          string                        `json:"description"`
+	CompletionStage      int                           `json:"completion_stage"`
+	CreatorID            uint                          `json:"creator_id"`
+	Creator              model.Users                   `json:"creator"`
+	Status               string                        `json:"status"`
+	ProjectType          string                        `json:"project_type"`
+	PictureURL           string                        `json:"picture_url"`
+	Duration             string                        `json:"duration"`
+	TotalTeam            int                           `json:"total_team"`
+	StartDate            string                        `json:"start_date"`
+	EndDate              string                        `json:"end_date"`
+	Location             string                        `json:"location"`
+	Budget               float64                       `json:"budget"`
+	RegistrationDeadline string                        `json:"registration_deadline"`
+	TimeCommitment       string                        `json:"time_commitment"`
+	Benefits             []*model.ProjectBenefit       `json:"benefits"`
+	Timeline             []*model.ProjectTimeline      `json:"timeline"`
+	RequiredSkills       []*model.ProjectRequiredSkill `json:"required_skills"`
+	Conditions           []*model.ProjectCondition     `json:"conditions"`
+	Tags                 []*model.ProjectTag           `json:"tags"`
+	Members              []MemberResponse              `json:"members"`
+	Roles                []*model.ProjectRole          `json:"roles"`
+	CreatedAt            string                        `json:"created_at"`
+	UpdatedAt            string                        `json:"updated_at"`
 }
 
 func NewProjectService(db *gorm.DB, skillService *SkillService, tagService *TagService, benefitService *BenefitService, timelineService *TimelineService) *ProjectService {
@@ -94,16 +111,51 @@ func (s *ProjectService) transformProjectToResponse(project *model.Project) inte
 		}
 	}
 
+	// Format dates to RFC3339 strings
+	var startDateStr, endDateStr, registrationDeadlineStr, createdAtStr, updatedAtStr string
+	if !project.StartDate.IsZero() {
+		startDateStr = project.StartDate.Format("2006-01-02T15:04:05Z07:00")
+	}
+	if !project.EndDate.IsZero() {
+		endDateStr = project.EndDate.Format("2006-01-02T15:04:05Z07:00")
+	}
+	if !project.RegistrationDeadline.IsZero() {
+		registrationDeadlineStr = project.RegistrationDeadline.Format("2006-01-02T15:04:05Z07:00")
+	}
+	if !project.CreatedAt.IsZero() {
+		createdAtStr = project.CreatedAt.Format("2006-01-02T15:04:05Z07:00")
+	}
+	if !project.UpdatedAt.IsZero() {
+		updatedAtStr = project.UpdatedAt.Format("2006-01-02T15:04:05Z07:00")
+	}
+
 	response := ProjectResponseForMarshal{
-		ID:              project.ID,
-		Title:           project.Title,
-		Description:     project.Description,
-		CompletionStage: project.CompletionStage,
-		CreatorID:       project.CreatorID,
-		Benefits:        project.Benefits,
-		Timeline:        project.Timeline,
-		Members:         memberResponses,
-		Roles:           project.Roles,
+		ID:                   project.ID,
+		Title:                project.Title,
+		Description:          project.Description,
+		CompletionStage:      project.CompletionStage,
+		CreatorID:            project.CreatorID,
+		Creator:              project.Creator,
+		Status:               project.Status,
+		ProjectType:          project.ProjectType,
+		PictureURL:           project.PictureURL,
+		Duration:             project.Duration,
+		TotalTeam:            project.TotalTeam,
+		StartDate:            startDateStr,
+		EndDate:              endDateStr,
+		Location:             project.Location,
+		Budget:               project.Budget,
+		RegistrationDeadline: registrationDeadlineStr,
+		TimeCommitment:       project.TimeCommitment,
+		Benefits:             project.Benefits,
+		Timeline:             project.Timeline,
+		RequiredSkills:       project.RequiredSkills,
+		Conditions:           project.Conditions,
+		Tags:                 project.Tags,
+		Members:              memberResponses,
+		Roles:                project.Roles,
+		CreatedAt:            createdAtStr,
+		UpdatedAt:            updatedAtStr,
 	}
 
 	return response
