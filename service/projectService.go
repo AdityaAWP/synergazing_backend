@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+	"synergazing.com/synergazing/helper"
 	"synergazing.com/synergazing/model"
 )
 
@@ -138,7 +139,7 @@ func (s *ProjectService) transformProjectToResponse(project *model.Project) inte
 		Creator:              project.Creator,
 		Status:               project.Status,
 		ProjectType:          project.ProjectType,
-		PictureURL:           project.PictureURL,
+		PictureURL:           helper.GetUrlFile(project.PictureURL),
 		Duration:             project.Duration,
 		TotalTeam:            project.TotalTeam,
 		StartDate:            startDateStr,
