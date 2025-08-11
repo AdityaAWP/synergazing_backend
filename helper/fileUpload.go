@@ -13,7 +13,11 @@ import (
 )
 
 func GetUrlFile(filepath string) string {
-	AppURL := os.Getenv("APP_URL")
+	AppURL := os.Getenv("PUBLIC_APP_URL")
+	if AppURL == "" {
+		AppURL = os.Getenv("APP_URL")
+	}
+
 	if filepath == "" {
 		return ""
 	}
