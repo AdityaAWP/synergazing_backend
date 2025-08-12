@@ -1,3 +1,0 @@
-synergazing.bahasakita.store {
-    reverse_proxy synergazing-app:3002
-}
