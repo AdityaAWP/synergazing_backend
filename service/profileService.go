@@ -24,7 +24,7 @@ type UpdateProfileDTO struct {
 	GithubURL      *string
 	LinkedInURL    *string
 	InstagramURL   *string
-	PortofolioURL  *string
+	PortfolioURL   *string
 	ProfilePicture *multipart.FileHeader
 	CVFile         *multipart.FileHeader
 }
@@ -143,8 +143,8 @@ func (s *ProfileService) UpdateUserProfile(userId uint, data *UpdateProfileDTO) 
 	if data.InstagramURL != nil {
 		profile.InstagramURL = *data.InstagramURL
 	}
-	if data.PortofolioURL != nil {
-		profile.PortfolioURL = *data.PortofolioURL
+	if data.PortfolioURL != nil {
+		profile.PortfolioURL = *data.PortfolioURL
 	}
 
 	var newProfilePicPath string
@@ -209,7 +209,13 @@ func (s *ProfileService) UpdateUserProfile(userId uint, data *UpdateProfileDTO) 
 		return nil, nil, err
 	}
 
+	// Reload the profile to get updated data with proper relationships
+	if err := s.DB.Preload("User").Where("user_id = ?", userId).First(&profile).Error; err != nil {
+		return nil, nil, fmt.Errorf("failed to reload profile")
+	}
+
 	user.Password = ""
+	profile.User.Password = ""
 	return &user, &profile, nil
 }
 

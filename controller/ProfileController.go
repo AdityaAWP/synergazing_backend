@@ -74,70 +74,46 @@ func (ctrl *ProfileController) UpdateProfile(c *fiber.Ctx) error {
 
 	dto := new(service.UpdateProfileDTO)
 
-	if c.Request().PostArgs().Has("name") {
-		name := c.FormValue("name")
-		if name == "" {
-			return helper.Message400("Name cannot be empty")
-		}
+	if name := c.FormValue("name"); name != "" {
 		dto.Name = &name
 	}
-	if c.Request().PostArgs().Has("email") {
-		email := c.FormValue("email")
-		if email == "" {
-			return helper.Message400("Email cannot be empty")
-		}
+	if email := c.FormValue("email"); email != "" {
 		dto.Email = &email
 	}
-	if c.Request().PostArgs().Has("phone") {
-		phone := c.FormValue("phone")
-		if phone == "" {
-			return helper.Message400("Phone cannot be empty")
-		}
+	if phone := c.FormValue("phone"); phone != "" {
 		dto.Phone = &phone
 	}
 
-	if c.Request().PostArgs().Has("password") {
-		password := c.FormValue("password")
-		if password != "" {
-			dto.Password = &password
-		}
+	if password := c.FormValue("password"); password != "" {
+		dto.Password = &password
 	}
-	if c.Request().PostArgs().Has("about_me") {
-		aboutMe := c.FormValue("about_me")
-		dto.AboutMe = &aboutMe
-	}
-	if c.Request().PostArgs().Has("location") {
-		location := c.FormValue("location")
-		dto.Location = &location
-	}
-	if c.Request().PostArgs().Has("interests") {
-		interests := c.FormValue("interests")
-		dto.Interests = &interests
-	}
-	if c.Request().PostArgs().Has("academic") {
-		academic := c.FormValue("academic")
-		dto.Academic = &academic
-	}
-	if c.Request().PostArgs().Has("website_url") {
-		websiteURL := c.FormValue("website_url")
-		dto.WebsiteURL = &websiteURL
-	}
-	if c.Request().PostArgs().Has("github_url") {
-		githubURL := c.FormValue("github_url")
-		dto.GithubURL = &githubURL
-	}
-	if c.Request().PostArgs().Has("linkedin_url") {
-		linkedInURL := c.FormValue("linkedin_url")
-		dto.LinkedInURL = &linkedInURL
-	}
-	if c.Request().PostArgs().Has("instagram_url") {
-		instagramURL := c.FormValue("instagram_url")
-		dto.InstagramURL = &instagramURL
-	}
-	if c.Request().PostArgs().Has("portfolio_url") {
-		portfolioURL := c.FormValue("portfolio_url")
-		dto.PortofolioURL = &portfolioURL
-	}
+
+	aboutMe := c.FormValue("about_me")
+	dto.AboutMe = &aboutMe
+
+	location := c.FormValue("location")
+	dto.Location = &location
+
+	interests := c.FormValue("interests")
+	dto.Interests = &interests
+
+	academic := c.FormValue("academic")
+	dto.Academic = &academic
+
+	websiteURL := c.FormValue("website_url")
+	dto.WebsiteURL = &websiteURL
+
+	githubURL := c.FormValue("github_url")
+	dto.GithubURL = &githubURL
+
+	linkedInURL := c.FormValue("linkedin_url")
+	dto.LinkedInURL = &linkedInURL
+
+	instagramURL := c.FormValue("instagram_url")
+	dto.InstagramURL = &instagramURL
+
+	portfolioURL := c.FormValue("portfolio_url")
+	dto.PortfolioURL = &portfolioURL
 
 	if profilePic, err := c.FormFile("profile_picture"); err == nil {
 		dto.ProfilePicture = profilePic

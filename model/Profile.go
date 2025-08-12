@@ -1,6 +1,11 @@
 package model
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+
+	"synergazing.com/synergazing/helper"
+)
 
 type Profiles struct {
 	ID             uint   `json:"id" gorm:"primaryKey"`
@@ -27,4 +32,17 @@ type Profiles struct {
 
 func (Profiles) TableName() string {
 	return "profiles"
+}
+
+func (p Profiles) MarshalJSON() ([]byte, error) {
+	type Alias Profiles
+	return json.Marshal(&struct {
+		ProfilePicture string `json:"profile_picture"`
+		CVFile         string `json:"cv_file"`
+		*Alias
+	}{
+		ProfilePicture: helper.GetUrlFile(p.ProfilePicture),
+		CVFile:         helper.GetUrlFile(p.CVFile),
+		Alias:          (*Alias)(&p),
+	})
 }
