@@ -46,13 +46,14 @@ func (ctrl *ProfileController) GetUserProfile(c *fiber.Ctx) error {
 	}
 
 	responseData := fiber.Map{
-		"id":              user.ID,
-		"name":            user.Name,
-		"email":           user.Email,
-		"phone":           user.Phone,
-		"profile_picture": helper.GetUrlFile(profile.ProfilePicture),
-		"cv_file":         helper.GetUrlFile(profile.CVFile),
-		"skills":          user.UserSkills,
+		"id":                  user.ID,
+		"name":                user.Name,
+		"email":               user.Email,
+		"phone":               user.Phone,
+		"colaboration_status": user.StatusCollaboration,
+		"profile_picture":     helper.GetUrlFile(profile.ProfilePicture),
+		"cv_file":             helper.GetUrlFile(profile.CVFile),
+		"skills":              user.UserSkills,
 		"profile": fiber.Map{
 			"about_me":      profile.AboutMe,
 			"location":      profile.Location,
