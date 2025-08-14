@@ -26,12 +26,19 @@ func ListAllUsers(c *fiber.Ctx) error {
 }
 
 func GetReadyUsers(c *fiber.Ctx) error {
-	users, err := service.GetReadyUsers()
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	perPage, _ := strconv.Atoi(c.Query("per_page", "20"))
+
+	users, paginationData, err := service.GetReadyUsersPaginatedWithTransform(page, perPage)
 	if err != nil {
 		return helper.Message500("Failed to retrieve ready users")
 	}
 
-	return helper.Message200(c, users, "Ready users retrieved successfully")
+	return helper.Message200(c, fiber.Map{
+		"success":    true,
+		"users":      users,
+		"pagination": paginationData,
+	}, "Ready users retrieved successfully")
 }
 
 func GetUserProfileByID(c *fiber.Ctx) error {
