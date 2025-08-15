@@ -25,7 +25,7 @@ type Project struct {
 	StartDate            time.Time `json:"start_date"`
 	EndDate              time.Time `json:"end_date"`
 	Location             string    `json:"location"`
-	Budget               float64   `json:"budget"`
+	Budget               string    `json:"budget"`
 	RegistrationDeadline time.Time `json:"registration_deadline"`
 
 	TimeCommitment string `json:"time_commitment"`

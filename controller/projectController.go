@@ -53,7 +53,7 @@ func (ctrl *ProjectController) UpdateStage2(c *fiber.Ctx) error {
 	details.StartDate, _ = time.Parse(time.RFC3339, c.FormValue("start_date"))
 	details.EndDate, _ = time.Parse(time.RFC3339, c.FormValue("end_date"))
 	details.Location = c.FormValue("location")
-	details.Budget, _ = strconv.ParseFloat(c.FormValue("budget"), 64)
+	details.Budget = c.FormValue("budget")
 	details.RegistrationDeadline, _ = time.Parse(time.RFC3339, c.FormValue("registration_deadline"))
 
 	project, err := ctrl.projectService.CreateProjectStage2(uint(projectID), userID, details)

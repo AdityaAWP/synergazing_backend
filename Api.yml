@@ -36,7 +36,7 @@ components:
         user_skills:
           type: array
           items:
-            $ref: '#/components/schemas/UserSkill'
+            $ref: "#/components/schemas/UserSkill"
         created_at:
           type: string
           format: date-time
@@ -47,7 +47,7 @@ components:
       type: object
       properties:
         skill:
-          $ref: '#/components/schemas/Skill'
+          $ref: "#/components/schemas/Skill"
         proficiency:
           type: integer
           minimum: 1
@@ -67,7 +67,7 @@ components:
         creator_id:
           type: integer
         creator:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         title:
           type: string
         project_type:
@@ -95,7 +95,7 @@ components:
         location:
           type: string
         budget:
-          type: number
+          type: string
         registration_deadline:
           type: string
           format: date-time
@@ -104,27 +104,27 @@ components:
         benefits:
           type: array
           items:
-            $ref: '#/components/schemas/ProjectBenefit'
+            $ref: "#/components/schemas/ProjectBenefit"
         timeline:
           type: array
           items:
-            $ref: '#/components/schemas/ProjectTimeline'
+            $ref: "#/components/schemas/ProjectTimeline"
         required_skills:
           type: array
           items:
-            $ref: '#/components/schemas/ProjectRequiredSkill'
+            $ref: "#/components/schemas/ProjectRequiredSkill"
         roles:
           type: array
           items:
-            $ref: '#/components/schemas/ProjectRole'
+            $ref: "#/components/schemas/ProjectRole"
         members:
           type: array
           items:
-            $ref: '#/components/schemas/ProjectMember'
+            $ref: "#/components/schemas/ProjectMember"
         tags:
           type: array
           items:
-            $ref: '#/components/schemas/ProjectTag'
+            $ref: "#/components/schemas/ProjectTag"
         created_at:
           type: string
           format: date-time
@@ -141,13 +141,13 @@ components:
         user2_id:
           type: integer
         user1:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         user2:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         messages:
           type: array
           items:
-            $ref: '#/components/schemas/Message'
+            $ref: "#/components/schemas/Message"
         created_at:
           type: string
           format: date-time
@@ -168,7 +168,7 @@ components:
         is_read:
           type: boolean
         sender:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         created_at:
           type: string
           format: date-time
@@ -228,7 +228,7 @@ components:
             users:
               type: array
               items:
-                $ref: '#/components/schemas/User'
+                $ref: "#/components/schemas/User"
             pagination:
               type: object
               properties:
@@ -287,12 +287,12 @@ paths:
                 - password
                 - phone
       responses:
-        '200':
+        "200":
           description: User registered successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/auth/login:
     post:
       tags:
@@ -314,31 +314,31 @@ paths:
                 - email
                 - password
       responses:
-        '200':
+        "200":
           description: Login successful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/auth/logout:
     post:
       tags:
         - Authentication
       summary: Logout user
       responses:
-        '200':
+        "200":
           description: Logout successful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/auth/google/login:
     get:
       tags:
         - Authentication
       summary: Initiate Google OAuth login
       responses:
-        '302':
+        "302":
           description: Redirect to Google OAuth
   /api/auth/google/callback:
     get:
@@ -346,12 +346,12 @@ paths:
         - Authentication
       summary: Google OAuth callback
       responses:
-        '200':
+        "200":
           description: OAuth callback processed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/users:
     get:
       tags:
@@ -371,12 +371,12 @@ paths:
             type: integer
             default: 20
       responses:
-        '200':
+        "200":
           description: Users retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginationResponse'
+                $ref: "#/components/schemas/PaginationResponse"
   /api/users/ready:
     get:
       tags:
@@ -385,7 +385,7 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Ready users retrieved successfully
           content:
             application/json:
@@ -399,7 +399,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/User'
+                      $ref: "#/components/schemas/User"
   /api/profile:
     get:
       tags:
@@ -408,12 +408,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Profile retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/update-profile:
     put:
       tags:
@@ -460,12 +460,12 @@ paths:
                   type: string
                   format: binary
       responses:
-        '200':
+        "200":
           description: Profile updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/profile/collaboration-status:
     put:
       tags:
@@ -488,12 +488,12 @@ paths:
               required:
                 - status
       responses:
-        '200':
+        "200":
           description: Collaboration status updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/users/{id}/profile:
     get:
       tags:
@@ -508,12 +508,12 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Public profile retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/users/{id}/cv:
     get:
       tags:
@@ -528,7 +528,7 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: CV file
           content:
             application/pdf:
@@ -543,12 +543,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Profile picture deleted successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/profile/cv:
     delete:
       tags:
@@ -557,19 +557,19 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: CV file deleted successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/skills/all:
     get:
       tags:
         - Skills
       summary: Get all available skills
       responses:
-        '200':
+        "200":
           description: Skills retrieved successfully
           content:
             application/json:
@@ -583,7 +583,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Skill'
+                      $ref: "#/components/schemas/Skill"
   /api/skills:
     get:
       tags:
@@ -592,12 +592,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: User skills retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
     post:
       tags:
         - Skills
@@ -623,12 +623,12 @@ paths:
                         minimum: 1
                         maximum: 10
       responses:
-        '200':
+        "200":
           description: Skills updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/skills/user/{skillName}:
     delete:
       tags:
@@ -643,24 +643,24 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Skill deleted successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/projects/all:
     get:
       tags:
         - Projects
       summary: Get all public projects
       responses:
-        '200':
+        "200":
           description: Projects retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/projects/public/{id}:
     get:
       tags:
@@ -673,12 +673,12 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Project retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/projects:
     get:
       tags:
@@ -687,12 +687,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: User projects retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/projects/stage1:
     post:
       tags:
@@ -721,12 +721,12 @@ paths:
                 - project_type
                 - description
       responses:
-        '200':
+        "200":
           description: Project stage 1 created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/projects/{id}/stage2:
     put:
       tags:
@@ -741,12 +741,12 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Project stage 2 updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/projects/{id}/stage3:
     put:
       tags:
@@ -761,12 +761,12 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Project stage 3 updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/projects/{id}/stage4:
     put:
       tags:
@@ -781,12 +781,12 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Project stage 4 updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/projects/{id}/stage5:
     put:
       tags:
@@ -801,12 +801,12 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Project stage 5 updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/projects/created:
     get:
       tags:
@@ -815,12 +815,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Created projects retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/projects/member:
     get:
       tags:
@@ -829,12 +829,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Member projects retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/projects/{id}:
     get:
       tags:
@@ -849,12 +849,12 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Project retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/chat/with/{user_id}:
     get:
       tags:
@@ -869,7 +869,7 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Chat retrieved successfully
           content:
             application/json:
@@ -881,7 +881,7 @@ paths:
                   message:
                     type: string
                   data:
-                    $ref: '#/components/schemas/Chat'
+                    $ref: "#/components/schemas/Chat"
   /api/chat:
     get:
       tags:
@@ -890,7 +890,7 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Chats retrieved successfully
           content:
             application/json:
@@ -904,7 +904,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Chat'
+                      $ref: "#/components/schemas/Chat"
   /api/chat/{chat_id}/messages:
     get:
       tags:
@@ -930,7 +930,7 @@ paths:
             default: 50
             maximum: 100
       responses:
-        '200':
+        "200":
           description: Messages retrieved successfully
           content:
             application/json:
@@ -947,7 +947,7 @@ paths:
                       messages:
                         type: array
                         items:
-                          $ref: '#/components/schemas/Message'
+                          $ref: "#/components/schemas/Message"
                       page:
                         type: integer
                       limit:
@@ -966,12 +966,12 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Messages marked as read successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/chat/notifications:
     get:
       tags:
@@ -980,12 +980,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Notifications retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /api/chat/unread-count:
     get:
       tags:
@@ -994,7 +994,7 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Unread count retrieved successfully
           content:
             application/json:
@@ -1028,7 +1028,7 @@ paths:
           schema:
             type: string
       responses:
-        '101':
+        "101":
           description: WebSocket connection established
   /test/users:
     post:
@@ -1036,24 +1036,24 @@ paths:
         - Testing
       summary: Create test users
       responses:
-        '200':
+        "200":
           description: Test users created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /test/chat:
     post:
       tags:
         - Testing
       summary: Create test chat
       responses:
-        '200':
+        "200":
           description: Test chat created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /test/token/{user_id}:
     get:
       tags:
@@ -1066,24 +1066,24 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Test token retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
   /test/data:
     get:
       tags:
         - Testing
       summary: List all test data
       responses:
-        '200':
+        "200":
           description: Test data retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: "#/components/schemas/ApiResponse"
 tags:
   - name: Authentication
     description: User authentication and OAuth endpoints

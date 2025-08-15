@@ -58,7 +58,7 @@ type ProjectResponseForMarshal struct {
 	StartDate            string                        `json:"start_date"`
 	EndDate              string                        `json:"end_date"`
 	Location             string                        `json:"location"`
-	Budget               float64                       `json:"budget"`
+	Budget               string                        `json:"budget"`
 	RegistrationDeadline string                        `json:"registration_deadline"`
 	TimeCommitment       string                        `json:"time_commitment"`
 	Benefits             []*model.ProjectBenefit       `json:"benefits"`
