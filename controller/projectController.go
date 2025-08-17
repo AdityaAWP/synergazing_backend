@@ -97,7 +97,7 @@ func (ctrl *ProjectController) UpdateStage4(c *fiber.Ctx) error {
 		return helper.Message400(err.Error())
 	}
 
-	return helper.Message200(c, project, "Stage 4 completed. Proceed to finalization.")
+	return helper.Message200(c, project, "Stage 4 completed. Team members and roles have been configured based on your total team capacity. Proceed to finalization.")
 }
 
 func (ctrl *ProjectController) UpdateStage5(c *fiber.Ctx) error {
@@ -244,4 +244,19 @@ func (ctrl *ProjectController) GetProjectByID(c *fiber.Ctx) error {
 	}
 
 	return helper.Message200(c, project, "Project retrieved successfully")
+}
+
+func (ctrl *ProjectController) GetProjectTeamCapacity(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+	projectID, err := strconv.ParseUint(c.Params("id"), 10, 32)
+	if err != nil {
+		return helper.Message400("Invalid project ID")
+	}
+
+	capacity, err := ctrl.projectService.GetProjectTeamCapacity(uint(projectID), userID)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, capacity, "Team capacity information retrieved successfully")
 }

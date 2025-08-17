@@ -55,6 +55,8 @@ type ProjectResponseForMarshal struct {
 	PictureURL           string                        `json:"picture_url"`
 	Duration             string                        `json:"duration"`
 	TotalTeam            int                           `json:"total_team"`
+	FilledTeam           int                           `json:"filled_team"`
+	RemainingTeam        int                           `json:"remaining_team"`
 	StartDate            string                        `json:"start_date"`
 	EndDate              string                        `json:"end_date"`
 	Location             string                        `json:"location"`
@@ -112,6 +114,9 @@ func (s *ProjectService) transformProjectToResponse(project *model.Project) inte
 		}
 	}
 
+	// Calculate team capacity
+	filledTeam, _, remainingTeam := s.calculateTeamCapacity(project)
+
 	// Format dates to RFC3339 strings
 	var startDateStr, endDateStr, registrationDeadlineStr, createdAtStr, updatedAtStr string
 	if !project.StartDate.IsZero() {
@@ -142,6 +147,8 @@ func (s *ProjectService) transformProjectToResponse(project *model.Project) inte
 		PictureURL:           helper.GetUrlFile(project.PictureURL),
 		Duration:             project.Duration,
 		TotalTeam:            project.TotalTeam,
+		FilledTeam:           filledTeam,
+		RemainingTeam:        remainingTeam,
 		StartDate:            startDateStr,
 		EndDate:              endDateStr,
 		Location:             project.Location,
@@ -304,6 +311,24 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 		return nil, err
 	}
 
+	// Validate team capacity
+	totalMembers := len(members)
+	totalRoleSlots := 0
+	for _, role := range roles {
+		totalRoleSlots += role.SlotsAvailable
+	}
+
+	if totalMembers+totalRoleSlots > project.TotalTeam {
+		tx.Rollback()
+		return nil, fmt.Errorf("Cannot add %d members and %d role slots. Total capacity is %d, but you're trying to allocate %d positions. Remaining capacity: %d",
+			totalMembers, totalRoleSlots, project.TotalTeam, totalMembers+totalRoleSlots, project.TotalTeam-(totalMembers+totalRoleSlots))
+	}
+
+	if totalMembers+totalRoleSlots == 0 {
+		tx.Rollback()
+		return nil, errors.New("You must add at least one member or create at least one role for team recruitment")
+	}
+
 	var existingMembers []model.ProjectMember
 	if err := tx.Where("project_id = ?", projectID).Find(&existingMembers).Error; err == nil {
 		for _, member := range existingMembers {
@@ -412,6 +437,42 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 	}
 
 	return s.transformProjectToResponse(projectResult), nil
+}
+
+// calculateTeamCapacity calculates team statistics for a project
+func (s *ProjectService) calculateTeamCapacity(project *model.Project) (filledTeam, totalRoleSlots, remainingTeam int) {
+	filledTeam = len(project.Members)
+	totalRoleSlots = 0
+	for _, role := range project.Roles {
+		totalRoleSlots += role.SlotsAvailable
+	}
+	remainingTeam = project.TotalTeam - filledTeam - totalRoleSlots
+	return
+}
+
+// GetProjectTeamCapacity returns team capacity information for a project
+func (s *ProjectService) GetProjectTeamCapacity(projectID, userID uint) (map[string]interface{}, error) {
+	_, err := s.GetUserProject(userID, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Load the full project with relationships
+	var fullProject model.Project
+	if err := s.DB.Preload("Members").Preload("Roles").Where("id = ?", projectID).First(&fullProject).Error; err != nil {
+		return nil, errors.New("project not found")
+	}
+
+	filledTeam, totalRoleSlots, remainingTeam := s.calculateTeamCapacity(&fullProject)
+
+	return map[string]interface{}{
+		"total_team":       fullProject.TotalTeam,
+		"filled_team":      filledTeam,
+		"total_role_slots": totalRoleSlots,
+		"remaining_team":   remainingTeam,
+		"members":          len(fullProject.Members),
+		"roles":            len(fullProject.Roles),
+	}, nil
 }
 
 func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, timelineNames, tagNames []string) (interface{}, error) {

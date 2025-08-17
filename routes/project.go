@@ -33,4 +33,5 @@ func SetupProjectRoutes(app *fiber.App) {
 	project.Get("/created", projectController.GetMyCreatedProjects)
 	project.Get("/member", projectController.GetMyMemberProjects)
 	project.Get("/:id", projectController.GetUserProject)
+	project.Get("/:id/capacity", projectController.GetProjectTeamCapacity)
 }

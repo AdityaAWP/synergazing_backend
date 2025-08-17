@@ -86,6 +86,12 @@ components:
           type: string
         total_team:
           type: integer
+        filled_team:
+          type: integer
+          description: Number of members already added to the project
+        remaining_team:
+          type: integer
+          description: Remaining team capacity available
         start_date:
           type: string
           format: date-time
@@ -855,6 +861,52 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiResponse"
+  /api/projects/{id}/capacity:
+    get:
+      tags:
+        - Projects
+      summary: Get project team capacity information
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Team capacity information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      total_team:
+                        type: integer
+                        description: Maximum team capacity set in stage 2
+                      filled_team:
+                        type: integer
+                        description: Number of members already added
+                      total_role_slots:
+                        type: integer
+                        description: Total available role slots for recruitment
+                      remaining_team:
+                        type: integer
+                        description: Remaining team capacity available
+                      members:
+                        type: integer
+                        description: Number of actual members
+                      roles:
+                        type: integer
+                        description: Number of roles created
   /api/chat/with/{user_id}:
     get:
       tags:
