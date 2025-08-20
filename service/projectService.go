@@ -38,6 +38,19 @@ type MemberResponse struct {
 	SkillNames      []string `json:"skill_names"`
 }
 
+type CreatorWithProfileResponse struct {
+	ID                  uint   `json:"id"`
+	Name                string `json:"name"`
+	Email               string `json:"email"`
+	Phone               string `json:"phone"`
+	StatusCollaboration string `json:"status_collaboration"`
+	ProfilePicture      string `json:"profile_picture"`
+	AboutMe             string `json:"about_me"`
+	Interests           string `json:"interests"`
+	CreatedAt           string `json:"created_at"`
+	UpdatedAt           string `json:"updated_at"`
+}
+
 type ProjectResponse struct {
 	*model.Project
 	Members []MemberResponse `json:"members"`
@@ -49,7 +62,7 @@ type ProjectResponseForMarshal struct {
 	Description          string                        `json:"description"`
 	CompletionStage      int                           `json:"completion_stage"`
 	CreatorID            uint                          `json:"creator_id"`
-	Creator              model.Users                   `json:"creator"`
+	Creator              CreatorWithProfileResponse    `json:"creator"`
 	Status               string                        `json:"status"`
 	ProjectType          string                        `json:"project_type"`
 	PictureURL           string                        `json:"picture_url"`
@@ -99,6 +112,25 @@ func (s *ProjectService) getProjectForUpdate(tx *gorm.DB, projectID, userID uint
 }
 
 func (s *ProjectService) transformProjectToResponse(project *model.Project) interface{} {
+	// For backward compatibility, call the new method without profile
+	var emptyProfile model.Profiles
+	return s.transformProjectToResponseWithProfile(project, emptyProfile, false)
+}
+
+// Helper method to transform a single project with profile data
+func (s *ProjectService) transformProjectToResponseWithSingleProfile(project *model.Project) interface{} {
+	var profile model.Profiles
+	hasProfile := false
+
+	// Fetch profile for the creator
+	if err := s.DB.Where("user_id = ?", project.CreatorID).First(&profile).Error; err == nil {
+		hasProfile = true
+	}
+
+	return s.transformProjectToResponseWithProfile(project, profile, hasProfile)
+}
+
+func (s *ProjectService) transformProjectToResponseWithProfile(project *model.Project, profile model.Profiles, hasProfile bool) interface{} {
 	memberResponses := make([]MemberResponse, len(project.Members))
 	for i, member := range project.Members {
 		skillNames := make([]string, len(member.MemberSkills))
@@ -135,13 +167,35 @@ func (s *ProjectService) transformProjectToResponse(project *model.Project) inte
 		updatedAtStr = project.UpdatedAt.Format("2006-01-02T15:04:05Z07:00")
 	}
 
+	// Create creator response with profile data
+	creator := CreatorWithProfileResponse{
+		ID:                  project.Creator.ID,
+		Name:                project.Creator.Name,
+		Email:               project.Creator.Email,
+		Phone:               project.Creator.Phone,
+		StatusCollaboration: project.Creator.StatusCollaboration,
+		CreatedAt:           project.Creator.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:           project.Creator.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
+
+	// Add profile data if available
+	if hasProfile {
+		creator.ProfilePicture = helper.GetUrlFile(profile.ProfilePicture)
+		creator.AboutMe = profile.AboutMe
+		creator.Interests = profile.Interests
+	} else {
+		creator.ProfilePicture = ""
+		creator.AboutMe = ""
+		creator.Interests = ""
+	}
+
 	response := ProjectResponseForMarshal{
 		ID:                   project.ID,
 		Title:                project.Title,
 		Description:          project.Description,
 		CompletionStage:      project.CompletionStage,
 		CreatorID:            project.CreatorID,
-		Creator:              project.Creator,
+		Creator:              creator,
 		Status:               project.Status,
 		ProjectType:          project.ProjectType,
 		PictureURL:           helper.GetUrlFile(project.PictureURL),
@@ -300,7 +354,7 @@ func (s *ProjectService) UpdateStage3(projectID, userID uint, timeCommitment str
 		return nil, err
 	}
 
-	return s.transformProjectToResponse(projectResult), nil
+	return s.transformProjectToResponseWithSingleProfile(projectResult), nil
 }
 
 func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, members []MemberDTO) (interface{}, error) {
@@ -436,7 +490,7 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 		return nil, err
 	}
 
-	return s.transformProjectToResponse(projectResult), nil
+	return s.transformProjectToResponseWithSingleProfile(projectResult), nil
 }
 
 // calculateTeamCapacity calculates team statistics for a project
@@ -576,7 +630,7 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, time
 		return nil, err
 	}
 
-	return s.transformProjectToResponse(projectResult), nil
+	return s.transformProjectToResponseWithSingleProfile(projectResult), nil
 }
 
 func (s *ProjectService) CreateRolesOnly(projectID, userID uint, roles []RoleDTO) (interface{}, error) {
@@ -635,7 +689,7 @@ func (s *ProjectService) CreateRolesOnly(projectID, userID uint, roles []RoleDTO
 		return nil, err
 	}
 
-	return s.transformProjectToResponse(projectResult), nil
+	return s.transformProjectToResponseWithSingleProfile(projectResult), nil
 }
 
 func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []MemberDTO) (interface{}, error) {
@@ -723,7 +777,7 @@ func (s *ProjectService) AddMembersOnly(projectID, userID uint, members []Member
 		return nil, err
 	}
 
-	return s.transformProjectToResponse(projectResult), nil
+	return s.transformProjectToResponseWithSingleProfile(projectResult), nil
 }
 
 func (s *ProjectService) GetUserProjects(userID uint) ([]interface{}, error) {
@@ -746,9 +800,27 @@ func (s *ProjectService) GetUserProjects(userID uint) ([]interface{}, error) {
 		return nil, fmt.Errorf("failed to retrieve user projects: %w", err)
 	}
 
+	// Fetch profiles for all creators
+	var creatorIDs []uint
+	for _, project := range projects {
+		creatorIDs = append(creatorIDs, project.CreatorID)
+	}
+
+	var profiles []model.Profiles
+	if len(creatorIDs) > 0 {
+		s.DB.Where("user_id IN ?", creatorIDs).Find(&profiles)
+	}
+
+	// Create a map for quick profile lookup
+	profileMap := make(map[uint]model.Profiles)
+	for _, profile := range profiles {
+		profileMap[profile.UserID] = profile
+	}
+
 	var responses []interface{}
 	for _, project := range projects {
-		response := s.transformProjectToResponse(&project)
+		profile, exists := profileMap[project.CreatorID]
+		response := s.transformProjectToResponseWithProfile(&project, profile, exists)
 		responses = append(responses, response)
 	}
 
@@ -775,9 +847,27 @@ func (s *ProjectService) GetMyCreatedProjects(userID uint) ([]interface{}, error
 		return nil, fmt.Errorf("failed to retrieve created projects: %w", err)
 	}
 
+	// Fetch profiles for all creators
+	var creatorIDs []uint
+	for _, project := range projects {
+		creatorIDs = append(creatorIDs, project.CreatorID)
+	}
+
+	var profiles []model.Profiles
+	if len(creatorIDs) > 0 {
+		s.DB.Where("user_id IN ?", creatorIDs).Find(&profiles)
+	}
+
+	// Create a map for quick profile lookup
+	profileMap := make(map[uint]model.Profiles)
+	for _, profile := range profiles {
+		profileMap[profile.UserID] = profile
+	}
+
 	var responses []interface{}
 	for _, project := range projects {
-		response := s.transformProjectToResponse(&project)
+		profile, exists := profileMap[project.CreatorID]
+		response := s.transformProjectToResponseWithProfile(&project, profile, exists)
 		responses = append(responses, response)
 	}
 
@@ -804,9 +894,27 @@ func (s *ProjectService) GetMyMemberProjects(userID uint) ([]interface{}, error)
 		return nil, fmt.Errorf("failed to retrieve member projects: %w", err)
 	}
 
+	// Fetch profiles for all creators
+	var creatorIDs []uint
+	for _, project := range projects {
+		creatorIDs = append(creatorIDs, project.CreatorID)
+	}
+
+	var profiles []model.Profiles
+	if len(creatorIDs) > 0 {
+		s.DB.Where("user_id IN ?", creatorIDs).Find(&profiles)
+	}
+
+	// Create a map for quick profile lookup
+	profileMap := make(map[uint]model.Profiles)
+	for _, profile := range profiles {
+		profileMap[profile.UserID] = profile
+	}
+
 	var responses []interface{}
 	for _, project := range projects {
-		response := s.transformProjectToResponse(&project)
+		profile, exists := profileMap[project.CreatorID]
+		response := s.transformProjectToResponseWithProfile(&project, profile, exists)
 		responses = append(responses, response)
 	}
 
@@ -844,7 +952,7 @@ func (s *ProjectService) GetUserProject(userID, projectID uint) (interface{}, er
 		return nil, fmt.Errorf("failed to load project: %w", err)
 	}
 
-	return s.transformProjectToResponse(projectResult), nil
+	return s.transformProjectToResponseWithSingleProfile(projectResult), nil
 }
 
 func (s *ProjectService) GetAllProjects() ([]interface{}, error) {
@@ -867,9 +975,27 @@ func (s *ProjectService) GetAllProjects() ([]interface{}, error) {
 		return nil, fmt.Errorf("failed to retrieve all projects: %w", err)
 	}
 
+	// Fetch profiles for all creators
+	var creatorIDs []uint
+	for _, project := range projects {
+		creatorIDs = append(creatorIDs, project.CreatorID)
+	}
+
+	var profiles []model.Profiles
+	if len(creatorIDs) > 0 {
+		s.DB.Where("user_id IN ?", creatorIDs).Find(&profiles)
+	}
+
+	// Create a map for quick profile lookup
+	profileMap := make(map[uint]model.Profiles)
+	for _, profile := range profiles {
+		profileMap[profile.UserID] = profile
+	}
+
 	var responses []interface{}
 	for _, project := range projects {
-		response := s.transformProjectToResponse(&project)
+		profile, exists := profileMap[project.CreatorID]
+		response := s.transformProjectToResponseWithProfile(&project, profile, exists)
 		responses = append(responses, response)
 	}
 
@@ -890,7 +1016,7 @@ func (s *ProjectService) GetProjectByID(projectID uint) (interface{}, error) {
 		return nil, fmt.Errorf("failed to load project: %w", err)
 	}
 
-	return s.transformProjectToResponse(projectResult), nil
+	return s.transformProjectToResponseWithSingleProfile(projectResult), nil
 }
 
 // DeleteProject deletes a project by ID, only if the user is the creator
