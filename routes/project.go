@@ -17,10 +17,11 @@ func SetupProjectRoutes(app *fiber.App) {
 	ProjectService := service.NewProjectService(db, skillService, tagService, benefitService, timelineService)
 	projectController := controller.NewProjectController(ProjectService)
 
-	publicProjects := app.Group("/api/projects")
-	publicProjects.Get("/all", projectController.GetAllProjects)
-	publicProjects.Get("/public/:id", projectController.GetProjectByID)
+	// Register specific public routes FIRST to avoid conflicts with protected /:id route
+	app.Get("/api/projects/all", projectController.GetAllProjects)
+	app.Get("/api/projects/public/:id", projectController.GetProjectByID)
 
+	// Protected routes - authentication required
 	project := app.Group("/api/projects", middleware.AuthMiddleware())
 
 	project.Post("/stage1", projectController.CreateStage1)

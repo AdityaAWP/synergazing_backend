@@ -91,12 +91,12 @@ func main() {
 		return c.Redirect("/api/docs/")
 	})
 	routes.SetupAuthRoutes(app)
+	routes.SetupProjectRoutes(app)
 	routes.SetupProfileRoutes(app)
 	routes.SetupUserRoutes(app)
 	routes.SkillRoutes(app)
 	routes.SetupChatRoutes(app)
 	routes.SetupTestRoutes(app)
-	routes.SetupProjectRoutes(app)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello World - GORM Connected!")
