@@ -893,6 +893,80 @@ func (s *ProjectService) GetProjectByID(projectID uint) (interface{}, error) {
 	return s.transformProjectToResponse(projectResult), nil
 }
 
+// DeleteProject deletes a project by ID, only if the user is the creator
+func (s *ProjectService) DeleteProject(projectID, userID uint) error {
+	tx := s.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// First check if project exists and user is authorized
+	var project model.Project
+	if err := tx.First(&project, projectID).Error; err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("project not found")
+		}
+		return fmt.Errorf("failed to find project: %w", err)
+	}
+
+	// Check if user is the creator
+	if project.CreatorID != userID {
+		tx.Rollback()
+		return errors.New("you are not authorized to delete this project")
+	}
+
+	// Delete related records first (due to foreign key constraints)
+	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectBenefit{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project benefits: %w", err)
+	}
+
+	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectTimeline{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project timeline: %w", err)
+	}
+
+	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectRequiredSkill{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project required skills: %w", err)
+	}
+
+	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectCondition{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project conditions: %w", err)
+	}
+
+	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectRole{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project roles: %w", err)
+	}
+
+	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectMember{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project members: %w", err)
+	}
+
+	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectTag{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project tags: %w", err)
+	}
+
+	// Finally delete the project itself
+	if err := tx.Delete(&project).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
 func (s *ProfileService) UpdateCollaborationStatus(userId uint, status string) (*model.Users, error) {
 	var user model.Users
 	if err := s.DB.First(&user, userId).Error; err != nil {

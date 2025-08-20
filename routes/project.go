@@ -34,4 +34,5 @@ func SetupProjectRoutes(app *fiber.App) {
 	project.Get("/member", projectController.GetMyMemberProjects)
 	project.Get("/:id", projectController.GetUserProject)
 	project.Get("/:id/capacity", projectController.GetProjectTeamCapacity)
+	project.Delete("/:id", projectController.DeleteProject)
 }

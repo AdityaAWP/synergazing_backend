@@ -861,6 +861,63 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiResponse"
+    delete:
+      tags:
+        - Projects
+      summary: Delete project by ID
+      description: Delete a project. Only the project creator can delete their own project.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Project deleted successfully"
+                  data:
+                    type: object
+                    nullable: true
+                    example: null
+        "400":
+          description: Bad request - Invalid project ID or unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    examples:
+                      invalid_id:
+                        value: "Invalid project ID"
+                      not_found:
+                        value: "project not found"
+                      unauthorized:
+                        value: "you are not authorized to delete this project"
+        "401":
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
   /api/projects/{id}/capacity:
     get:
       tags:

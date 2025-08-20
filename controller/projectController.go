@@ -260,3 +260,18 @@ func (ctrl *ProjectController) GetProjectTeamCapacity(c *fiber.Ctx) error {
 
 	return helper.Message200(c, capacity, "Team capacity information retrieved successfully")
 }
+
+func (ctrl *ProjectController) DeleteProject(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+	projectID, err := strconv.ParseUint(c.Params("id"), 10, 32)
+	if err != nil {
+		return helper.Message400("Invalid project ID")
+	}
+
+	err = ctrl.projectService.DeleteProject(uint(projectID), userID)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, nil, "Project deleted successfully")
+}
