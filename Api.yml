@@ -256,6 +256,17 @@ components:
       type: object
     ProjectTimeline:
       type: object
+      properties:
+        project_id:
+          type: integer
+        timeline_id:
+          type: integer
+        timeline_status:
+          type: string
+          enum: ["not-started", "in-progress", "done"]
+          default: "not-started"
+        timeline:
+          $ref: "#/components/schemas/Timeline"
     ProjectRequiredSkill:
       type: object
     ProjectRole:
@@ -264,6 +275,38 @@ components:
       type: object
     ProjectTag:
       type: object
+    Timeline:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TimelineStatusOption:
+      type: object
+      properties:
+        value:
+          type: string
+          description: The status value to use in API calls
+          example: "in-progress"
+        label:
+          type: string
+          description: Human-readable label for display
+          example: "In Progress"
+        description:
+          type: string
+          description: Detailed description of the status
+          example: "This timeline item is currently being worked on"
+        color:
+          type: string
+          description: Suggested color code for UI display
+          example: "#F59E0B"
 paths:
   /api/auth/register:
     post:
@@ -806,6 +849,25 @@ paths:
           required: true
           schema:
             type: integer
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                benefits:
+                  type: string
+                  description: JSON array of benefit names
+                  example: '["Financial Growth", "Skill Development"]'
+                timeline:
+                  type: string
+                  description: JSON array of timeline objects with name and status
+                  example: '[{"name":"Planning Phase","status":"done"},{"name":"Development Phase","status":"in-progress"},{"name":"Testing Phase","status":"not-started"}]'
+                tags:
+                  type: string
+                  description: JSON array of tag names
+                  example: '["web development", "startup"]'
       responses:
         "200":
           description: Project stage 5 updated successfully
@@ -813,6 +875,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiResponse"
+  /api/projects/timeline-status-options:
+    get:
+      tags:
+        - Projects
+      summary: Get available timeline status options
+      description: Returns all available timeline status options for frontend selection (dropdown/select menus)
+      responses:
+        "200":
+          description: Timeline status options retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Timeline status options retrieved successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TimelineStatusOption"
   /api/projects/created:
     get:
       tags:

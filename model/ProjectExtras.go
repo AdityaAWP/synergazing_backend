@@ -76,9 +76,10 @@ func (ProjectBenefit) TableName() string {
 }
 
 type ProjectTimeline struct {
-	ProjectID  uint     `json:"project_id" gorm:"primaryKey"`
-	TimelineID uint     `json:"timeline_id" gorm:"primaryKey"`
-	Timeline   Timeline `json:"timeline" gorm:"foreignKey:TimelineID"`
+	ProjectID      uint     `json:"project_id" gorm:"primaryKey"`
+	TimelineID     uint     `json:"timeline_id" gorm:"primaryKey"`
+	TimelineStatus string   `json:"timeline_status" gorm:"type:timeline_status;default:'not-started';not null"`
+	Timeline       Timeline `json:"timeline" gorm:"foreignKey:TimelineID"`
 }
 
 func (ProjectTimeline) TableName() string {

@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 	"synergazing.com/synergazing/helper"
@@ -36,6 +37,11 @@ type MemberResponse struct {
 	RoleDescription string   `json:"role_description"`
 	RoleName        string   `json:"role_name"`
 	SkillNames      []string `json:"skill_names"`
+}
+
+type TimelineDTO struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
 }
 
 type CreatorWithProfileResponse struct {
@@ -529,7 +535,7 @@ func (s *ProjectService) GetProjectTeamCapacity(projectID, userID uint) (map[str
 	}, nil
 }
 
-func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, timelineNames, tagNames []string) (interface{}, error) {
+func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames []string, timelineData []TimelineDTO, tagNames []string) (interface{}, error) {
 	tx := s.DB.Begin()
 	project, err := s.getProjectForUpdate(tx, projectID, userID, 4)
 	if err != nil {
@@ -569,7 +575,13 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, time
 		}
 	}
 
-	if len(timelineNames) > 0 {
+	if len(timelineData) > 0 {
+		// Extract timeline names for finding/creating timelines
+		var timelineNames []string
+		for _, timeline := range timelineData {
+			timelineNames = append(timelineNames, timeline.Name)
+		}
+
 		timelines, err := s.timelineService.findOrCreate(tx, timelineNames)
 		if err != nil {
 			tx.Rollback()
@@ -581,10 +593,33 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames, time
 			return nil, err
 		}
 
+		// Create a map for easy lookup of timeline by name
+		timelineMap := make(map[string]*model.Timeline)
 		for _, timeline := range timelines {
+			timelineMap[timeline.Name] = timeline
+		}
+
+		for _, timelineDTO := range timelineData {
+			// Validate status
+			if timelineDTO.Status == "" {
+				timelineDTO.Status = helper.GetDefaultTimelineStatus()
+			}
+			if !helper.IsValidTimelineStatus(timelineDTO.Status) {
+				validStatuses := helper.GetValidTimelineStatuses()
+				tx.Rollback()
+				return nil, errors.New("invalid timeline status: " + timelineDTO.Status + ". Must be one of: " + strings.Join(validStatuses, ", "))
+			}
+
+			timeline, exists := timelineMap[timelineDTO.Name]
+			if !exists {
+				tx.Rollback()
+				return nil, errors.New("timeline not found: " + timelineDTO.Name)
+			}
+
 			projectTimeline := &model.ProjectTimeline{
-				ProjectID:  project.ID,
-				TimelineID: timeline.ID,
+				ProjectID:      project.ID,
+				TimelineID:     timeline.ID,
+				TimelineStatus: timelineDTO.Status,
 			}
 			if err := tx.Create(projectTimeline).Error; err != nil {
 				tx.Rollback()

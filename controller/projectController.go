@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 	"time"
@@ -126,23 +127,38 @@ func (ctrl *ProjectController) UpdateStage5(c *fiber.Ctx) error {
 	}
 
 	timelineRaw := c.FormValue("timeline")
-	var timelineNames []string
+	var timelineData []service.TimelineDTO
 
 	if timelineRaw != "" {
-		if jsonTimelines, err := helper.ParseStringSlice(timelineRaw); err == nil && len(jsonTimelines) > 0 {
-			timelineNames = jsonTimelines
+		// Try to parse as JSON array of timeline objects
+		var timelineObjects []service.TimelineDTO
+		if err := json.Unmarshal([]byte(timelineRaw), &timelineObjects); err == nil {
+			timelineData = timelineObjects
 		} else {
-			timelineNames = strings.Split(strings.TrimSpace(timelineRaw), ",")
-			for i, timeline := range timelineNames {
-				timelineNames[i] = strings.TrimSpace(timeline)
-			}
-			var cleanTimelines []string
-			for _, timeline := range timelineNames {
-				if timeline != "" {
-					cleanTimelines = append(cleanTimelines, timeline)
+			// Fallback: parse as string array (for backward compatibility)
+			var timelineNames []string
+			if jsonTimelines, err := helper.ParseStringSlice(timelineRaw); err == nil && len(jsonTimelines) > 0 {
+				timelineNames = jsonTimelines
+			} else {
+				timelineNames = strings.Split(strings.TrimSpace(timelineRaw), ",")
+				for i, timeline := range timelineNames {
+					timelineNames[i] = strings.TrimSpace(timeline)
 				}
+				var cleanTimelines []string
+				for _, timeline := range timelineNames {
+					if timeline != "" {
+						cleanTimelines = append(cleanTimelines, timeline)
+					}
+				}
+				timelineNames = cleanTimelines
 			}
-			timelineNames = cleanTimelines
+			// Convert string array to TimelineDTO array with default status
+			for _, name := range timelineNames {
+				timelineData = append(timelineData, service.TimelineDTO{
+					Name:   name,
+					Status: helper.GetDefaultTimelineStatus(),
+				})
+			}
 		}
 	}
 
@@ -167,12 +183,18 @@ func (ctrl *ProjectController) UpdateStage5(c *fiber.Ctx) error {
 		}
 	}
 
-	project, err := ctrl.projectService.UpdateStage5(uint(projectID), userID, benefitNames, timelineNames, tagNames)
+	project, err := ctrl.projectService.UpdateStage5(uint(projectID), userID, benefitNames, timelineData, tagNames)
 	if err != nil {
 		return helper.Message400(err.Error())
 	}
 
 	return helper.Message200(c, project, "Project successfully published!")
+}
+
+// GetTimelineStatusOptions returns available timeline status options for frontend selection
+func (ctrl *ProjectController) GetTimelineStatusOptions(c *fiber.Ctx) error {
+	options := helper.GetTimelineStatusOptions()
+	return helper.Message200(c, options, "Timeline status options retrieved successfully")
 }
 
 func (ctrl *ProjectController) GetUserProjects(c *fiber.Ctx) error {

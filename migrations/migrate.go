@@ -39,6 +39,11 @@ var modelMap = map[string]interface{}{
 func AutoMigrate(db *gorm.DB) {
 	fmt.Println("Running Auto Migrate")
 
+	// Create custom enums first
+	if err := CreateCustomEnums(db); err != nil {
+		log.Fatalf("Failed to create custom enums: %v", err)
+	}
+
 	err := db.AutoMigrate(
 		&model.Users{}, &model.Role{}, &model.Permission{}, &model.Skill{}, &model.Tag{}, &model.Benefit{}, &model.Timeline{},
 	)
@@ -118,6 +123,11 @@ func MigrateFresh(db *gorm.DB) {
 }
 func CreateCustomEnums(db *gorm.DB) error {
 	err := db.Exec("DO $$ BEGIN CREATE TYPE collaboration_status AS ENUM ('not ready', 'ready'); EXCEPTION WHEN duplicate_object THEN null; END $$;").Error
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec("DO $$ BEGIN CREATE TYPE timeline_status AS ENUM ('not-started', 'in-progress', 'done'); EXCEPTION WHEN duplicate_object THEN null; END $$;").Error
 	if err != nil {
 		return err
 	}

@@ -20,6 +20,7 @@ func SetupProjectRoutes(app *fiber.App) {
 	// Register specific public routes FIRST to avoid conflicts with protected /:id route
 	app.Get("/api/projects/all", projectController.GetAllProjects)
 	app.Get("/api/projects/public/:id", projectController.GetProjectByID)
+	app.Get("/api/projects/timeline-status-options", projectController.GetTimelineStatusOptions)
 
 	// Protected routes - authentication required
 	project := app.Group("/api/projects", middleware.AuthMiddleware())

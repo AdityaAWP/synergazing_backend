@@ -16,5 +16,5 @@ jobs:
       - name: Rebuild and Deploy Application
         run: |
           cd /home/rebbeca/synergazing/synergazing_backend
-          docker compose down
-          docker compose up -d --build --force-recreate
+          sudo docker compose down
+          sudo docker compose up --build -d
