@@ -1073,13 +1073,39 @@ func (s *ProjectService) DeleteProject(projectID, userID uint) error {
 		return fmt.Errorf("failed to find project: %w", err)
 	}
 
-	// Check if user is the creator
+	// Check if user is the creator (only owner can delete)
 	if project.CreatorID != userID {
 		tx.Rollback()
-		return errors.New("you are not authorized to delete this project")
+		return errors.New("only the project owner can delete this project")
 	}
 
-	// Delete related records first (due to foreign key constraints)
+	// Delete related records in proper order to respect foreign key constraints
+
+	// 1. First delete project member skills (references project_members)
+	if err := tx.Where("project_member_id IN (SELECT id FROM project_members WHERE project_id = ?)", projectID).Delete(&model.ProjectMemberSkill{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project member skills: %w", err)
+	}
+
+	// 2. Delete project members (references project_roles)
+	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectMember{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project members: %w", err)
+	}
+
+	// 3. Delete project role skills (references project_roles) - This fixes the foreign key constraint error
+	if err := tx.Where("project_role_id IN (SELECT id FROM project_roles WHERE project_id = ?)", projectID).Delete(&model.ProjectRoleSkill{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project role skills: %w", err)
+	}
+
+	// 4. Now we can safely delete project roles
+	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectRole{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project roles: %w", err)
+	}
+
+	// 5. Delete other project-related records
 	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectBenefit{}).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("failed to delete project benefits: %w", err)
@@ -1098,16 +1124,6 @@ func (s *ProjectService) DeleteProject(projectID, userID uint) error {
 	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectCondition{}).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("failed to delete project conditions: %w", err)
-	}
-
-	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectRole{}).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("failed to delete project roles: %w", err)
-	}
-
-	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectMember{}).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("failed to delete project members: %w", err)
 	}
 
 	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectTag{}).Error; err != nil {
