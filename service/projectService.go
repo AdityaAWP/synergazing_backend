@@ -118,17 +118,14 @@ func (s *ProjectService) getProjectForUpdate(tx *gorm.DB, projectID, userID uint
 }
 
 func (s *ProjectService) transformProjectToResponse(project *model.Project) interface{} {
-	// For backward compatibility, call the new method without profile
 	var emptyProfile model.Profiles
 	return s.transformProjectToResponseWithProfile(project, emptyProfile, false)
 }
 
-// Helper method to transform a single project with profile data
 func (s *ProjectService) transformProjectToResponseWithSingleProfile(project *model.Project) interface{} {
 	var profile model.Profiles
 	hasProfile := false
 
-	// Fetch profile for the creator
 	if err := s.DB.Where("user_id = ?", project.CreatorID).First(&profile).Error; err == nil {
 		hasProfile = true
 	}
@@ -152,10 +149,8 @@ func (s *ProjectService) transformProjectToResponseWithProfile(project *model.Pr
 		}
 	}
 
-	// Calculate team capacity
 	filledTeam, _, remainingTeam := s.calculateTeamCapacity(project)
 
-	// Format dates to RFC3339 strings
 	var startDateStr, endDateStr, registrationDeadlineStr, createdAtStr, updatedAtStr string
 	if !project.StartDate.IsZero() {
 		startDateStr = project.StartDate.Format("2006-01-02T15:04:05Z07:00")
@@ -173,7 +168,6 @@ func (s *ProjectService) transformProjectToResponseWithProfile(project *model.Pr
 		updatedAtStr = project.UpdatedAt.Format("2006-01-02T15:04:05Z07:00")
 	}
 
-	// Create creator response with profile data
 	creator := CreatorWithProfileResponse{
 		ID:                  project.Creator.ID,
 		Name:                project.Creator.Name,
@@ -184,7 +178,6 @@ func (s *ProjectService) transformProjectToResponseWithProfile(project *model.Pr
 		UpdatedAt:           project.Creator.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
-	// Add profile data if available
 	if hasProfile {
 		creator.ProfilePicture = helper.GetUrlFile(profile.ProfilePicture)
 		creator.AboutMe = profile.AboutMe
@@ -499,7 +492,6 @@ func (s *ProjectService) UpdateStage4(projectID, userID uint, roles []RoleDTO, m
 	return s.transformProjectToResponseWithSingleProfile(projectResult), nil
 }
 
-// calculateTeamCapacity calculates team statistics for a project
 func (s *ProjectService) calculateTeamCapacity(project *model.Project) (filledTeam, totalRoleSlots, remainingTeam int) {
 	filledTeam = len(project.Members)
 	totalRoleSlots = 0
@@ -510,14 +502,12 @@ func (s *ProjectService) calculateTeamCapacity(project *model.Project) (filledTe
 	return
 }
 
-// GetProjectTeamCapacity returns team capacity information for a project
 func (s *ProjectService) GetProjectTeamCapacity(projectID, userID uint) (map[string]interface{}, error) {
 	_, err := s.GetUserProject(userID, projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Load the full project with relationships
 	var fullProject model.Project
 	if err := s.DB.Preload("Members").Preload("Roles").Where("id = ?", projectID).First(&fullProject).Error; err != nil {
 		return nil, errors.New("project not found")
@@ -576,7 +566,6 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames []str
 	}
 
 	if len(timelineData) > 0 {
-		// Extract timeline names for finding/creating timelines
 		var timelineNames []string
 		for _, timeline := range timelineData {
 			timelineNames = append(timelineNames, timeline.Name)
@@ -593,14 +582,12 @@ func (s *ProjectService) UpdateStage5(projectID, userID uint, benefitNames []str
 			return nil, err
 		}
 
-		// Create a map for easy lookup of timeline by name
 		timelineMap := make(map[string]*model.Timeline)
 		for _, timeline := range timelines {
 			timelineMap[timeline.Name] = timeline
 		}
 
 		for _, timelineDTO := range timelineData {
-			// Validate status
 			if timelineDTO.Status == "" {
 				timelineDTO.Status = helper.GetDefaultTimelineStatus()
 			}
