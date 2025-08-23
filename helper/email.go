@@ -14,6 +14,7 @@ func SendPasswordResetEmail(email, token string) {
 	emailPortStr := os.Getenv("EMAIL_PORT")
 	emailUser := os.Getenv("EMAIL_USERNAME")
 	emailPass := os.Getenv("EMAIL_PASSWORD")
+	frontendURL := os.Getenv("FRONTEND_URL")
 
 	emailPort, err := strconv.Atoi(emailPortStr)
 	if err != nil {
@@ -27,7 +28,7 @@ func SendPasswordResetEmail(email, token string) {
 	m.SetHeader("To", email)
 	m.SetHeader("Subject", "Password Reset Request")
 
-	resetURL := fmt.Sprintf("https://synergazing.app/reset-password?token=%s", token)
+	resetURL := fmt.Sprintf("%s/reset-password?token=%s", frontendURL, token)
 
 	htmlBody := fmt.Sprintf(`
 	<div style="font-family: Arial, sans-serif; line-height: 1.6;">
