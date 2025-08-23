@@ -83,3 +83,38 @@ func (ctrl *AuthController) Logout(c *fiber.Ctx) error {
 		"message": "Logout Succesfull",
 	})
 }
+
+func (ctrl *AuthController) ForgotPassword(c *fiber.Ctx) error {
+	var req struct {
+		Email string `json:"email" validate:"required,email"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return helper.Message400("Invalid request body")
+	}
+
+	err := ctrl.AuthService.ForgotPassword(req.Email)
+	if err != nil {
+		return helper.Message500(err.Error())
+	}
+
+	return helper.Message200(c, nil, "If an account with that email exists, a password reset link has been sent.")
+}
+
+func (ctrl *AuthController) ResetPassword(c *fiber.Ctx) error {
+	var req struct {
+		Token           string `json:"token" validate:"required"`
+		Password        string `json:"password" validate:"required,min=8"`
+		PasswordConfirm string `json:"passwordConfirm" validate:"required"`
+	}
+
+	if err := c.BodyParser(&req); err != nil {
+		return helper.Message400("Invalid request body")
+	}
+
+	err := ctrl.AuthService.ResetPassword(req.Token, req.Password, req.PasswordConfirm)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, nil, "Password has been reset successfully.")
+}

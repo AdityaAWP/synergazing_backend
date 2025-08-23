@@ -1,9 +1,12 @@
 package service
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"synergazing.com/synergazing/config"
@@ -92,4 +95,63 @@ func (s *AuthService) GenerateTokenForUser(userID uint, email string) (string, e
 		return "", errors.New("failed to generate token")
 	}
 	return token, nil
+}
+
+func (s *AuthService) ForgotPassword(email string) error {
+	db := config.GetDB()
+	var user model.Users
+	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
+		log.Printf("Password reset requested for non-existent email: %s", email)
+		return nil
+	}
+
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		log.Printf("Error generating token: %v", err)
+		return errors.New("could not generate token")
+	}
+	token := hex.EncodeToString(b)
+
+	user.PasswordResetToken = token
+	user.PasswordResetAt = time.Now().Add(time.Minute * 5)
+	if err := db.Save(&user).Error; err != nil {
+		log.Printf("Database error saving reset token: %v", err)
+		return errors.New("failed to save reset token")
+	}
+
+	go helper.SendPasswordResetEmail(user.Email, token)
+
+	return nil
+}
+
+func (s *AuthService) ResetPassword(token, password, passwordConfirm string) error {
+	if password != passwordConfirm {
+		return errors.New("passwords do not match")
+	}
+	if len(password) < 8 {
+		return errors.New("password must be at least 8 characters")
+	}
+
+	db := config.GetDB()
+	var user model.Users
+	if err := db.Where("password_reset_token = ?", token).First(&user).Error; err != nil {
+		return errors.New("invalid token")
+	}
+
+	if time.Now().After(user.PasswordResetAt) {
+		return errors.New("token has expired")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.New("failed to hash password")
+	}
+
+	user.Password = string(hashedPassword)
+	user.PasswordResetToken = ""
+	if err := db.Save(&user).Error; err != nil {
+		return errors.New("failed to update password")
+	}
+
+	return nil
 }

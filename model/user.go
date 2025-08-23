@@ -13,6 +13,9 @@ type Users struct {
 	UserSkills          []*UserSkill `json:"user_skills,omitempty" gorm:"foreignKey:UserID"`
 	CreatedAt           time.Time    `json:"created_at"`
 	UpdatedAt           time.Time    `json:"updated_at"`
+
+	PasswordResetToken string
+	PasswordResetAt    time.Time
 }
 
 func (Users) TableName() string {
