@@ -342,6 +342,182 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiResponse"
+  /api/auth/register/initiate:
+    post:
+      tags:
+        - Authentication
+      summary: Initiate user registration with OTP
+      description: Start the registration process by sending an OTP to the user's email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                phone:
+                  type: string
+              required:
+                - name
+                - email
+                - password
+                - phone
+      responses:
+        "200":
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          description: Validation error or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+  /api/auth/register/complete:
+    post:
+      tags:
+        - Authentication
+      summary: Complete user registration with OTP verification
+      description: Complete the registration process by verifying the OTP code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                phone:
+                  type: string
+                otp_code:
+                  type: string
+                  description: 6-digit OTP code received via email
+              required:
+                - name
+                - email
+                - password
+                - phone
+                - otp_code
+      responses:
+        "201":
+          description: Registration completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: "#/components/schemas/User"
+                      token:
+                        type: string
+        "400":
+          description: Invalid OTP or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+  /api/auth/otp/resend:
+    post:
+      tags:
+        - Authentication
+      summary: Resend OTP code
+      description: Resend OTP code for registration or password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                purpose:
+                  type: string
+                  enum:
+                    - registration
+                    - password_reset
+              required:
+                - email
+                - purpose
+      responses:
+        "200":
+          description: OTP resent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+  /api/auth/otp/verify:
+    post:
+      tags:
+        - Authentication
+      summary: Verify OTP code
+      description: Verify OTP code for any purpose
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                otp_code:
+                  type: string
+                  description: 6-digit OTP code
+                purpose:
+                  type: string
+                  enum:
+                    - registration
+                    - password_reset
+              required:
+                - email
+                - otp_code
+                - purpose
+      responses:
+        "200":
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          description: Invalid or expired OTP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
   /api/auth/login:
     post:
       tags:

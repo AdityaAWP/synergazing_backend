@@ -8,27 +8,75 @@ import (
 
 type AuthController struct {
 	AuthService *service.AuthService
+	OTPService  *service.OTPService
 }
 
-func NewAuthController(AuthService *service.AuthService) *AuthController {
+func NewAuthController(AuthService *service.AuthService, OTPService *service.OTPService) *AuthController {
 	return &AuthController{
 		AuthService: AuthService,
+		OTPService:  OTPService,
 	}
 }
 
+// InitiateRegistration starts the registration process and sends OTP
+func (ctrl *AuthController) InitiateRegistration(c *fiber.Ctx) error {
+	name := c.FormValue("name")
+	email := c.FormValue("email")
+	password := c.FormValue("password")
+	phone := c.FormValue("phone")
+
+	if name == "" || email == "" || password == "" || phone == "" {
+		return helper.Message400("All fields are required")
+	}
+
+	err := ctrl.AuthService.InitiateRegistration(name, email, password, phone)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, nil, "OTP sent to your email. Please verify to complete registration.")
+}
+
+// CompleteRegistration completes the registration process after OTP verification
+func (ctrl *AuthController) CompleteRegistration(c *fiber.Ctx) error {
+	name := c.FormValue("name")
+	email := c.FormValue("email")
+	password := c.FormValue("password")
+	phone := c.FormValue("phone")
+	otpCode := c.FormValue("otp_code")
+
+	if name == "" || email == "" || password == "" || phone == "" || otpCode == "" {
+		return helper.Message400("All fields are required")
+	}
+
+	user, err := ctrl.AuthService.CompleteRegistration(name, email, password, phone, otpCode)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	token, err := ctrl.AuthService.GenerateTokenForUser(user.ID, user.Email)
+	if err != nil {
+		return helper.Message500("Token generation failed")
+	}
+
+	return helper.Message201(c, fiber.Map{
+		"user":  user,
+		"token": token,
+	}, "Registration completed successfully")
+}
+
+// Register (legacy method for backward compatibility)
 func (ctrl *AuthController) Register(c *fiber.Ctx) error {
-	var req struct {
-		Name     string `json:"name" validate:"required"`
-		Email    string `json:"email" validate:"required, email"`
-		Password string `json:"password" validate:"required,min=8"`
-		Phone    string `json:"phone" validate:"required"`
+	name := c.FormValue("name")
+	email := c.FormValue("email")
+	password := c.FormValue("password")
+	phone := c.FormValue("phone")
+
+	if name == "" || email == "" || password == "" || phone == "" {
+		return helper.Message400("All fields are required")
 	}
 
-	if err := c.BodyParser(&req); err != nil {
-		return helper.Message400("Invalid request Body")
-	}
-
-	user, err := ctrl.AuthService.Register(req.Name, req.Email, req.Password, req.Phone)
+	user, err := ctrl.AuthService.Register(name, email, password, phone)
 	if err != nil {
 		return helper.Message400(err.Error())
 	}
@@ -45,16 +93,14 @@ func (ctrl *AuthController) Register(c *fiber.Ctx) error {
 }
 
 func (ctrl *AuthController) Login(c *fiber.Ctx) error {
-	var req struct {
-		Email    string `json:"email" validate:"required, email"`
-		Password string `json:"password" validate:"required, min=8"`
+	email := c.FormValue("email")
+	password := c.FormValue("password")
+
+	if email == "" || password == "" {
+		return helper.Message400("Email and password are required")
 	}
 
-	if err := c.BodyParser(&req); err != nil {
-		return helper.Message400("Invalid request body")
-	}
-
-	token, user, err := ctrl.AuthService.Login(req.Email, req.Password)
+	token, user, err := ctrl.AuthService.Login(email, password)
 	if err != nil {
 		return helper.Message401(err.Error())
 	}
@@ -62,7 +108,7 @@ func (ctrl *AuthController) Login(c *fiber.Ctx) error {
 	return helper.Message200(c, fiber.Map{
 		"user":  user,
 		"token": token,
-	}, "Login Succesful")
+	}, "Login Successful")
 }
 
 func (ctrl *AuthController) Logout(c *fiber.Ctx) error {
@@ -80,19 +126,17 @@ func (ctrl *AuthController) Logout(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"message": "Logout Succesfull",
+		"message": "Logout Successful",
 	})
 }
 
 func (ctrl *AuthController) ForgotPassword(c *fiber.Ctx) error {
-	var req struct {
-		Email string `json:"email" validate:"required,email"`
-	}
-	if err := c.BodyParser(&req); err != nil {
-		return helper.Message400("Invalid request body")
+	email := c.FormValue("email")
+	if email == "" {
+		return helper.Message400("Email is required")
 	}
 
-	err := ctrl.AuthService.ForgotPassword(req.Email)
+	err := ctrl.AuthService.ForgotPassword(email)
 	if err != nil {
 		return helper.Message500(err.Error())
 	}
@@ -101,20 +145,58 @@ func (ctrl *AuthController) ForgotPassword(c *fiber.Ctx) error {
 }
 
 func (ctrl *AuthController) ResetPassword(c *fiber.Ctx) error {
-	var req struct {
-		Token           string `json:"token" validate:"required"`
-		Password        string `json:"password" validate:"required,min=8"`
-		PasswordConfirm string `json:"passwordConfirm" validate:"required"`
+	token := c.FormValue("token")
+	password := c.FormValue("password")
+	passwordConfirm := c.FormValue("passwordConfirm")
+
+	if token == "" || password == "" || passwordConfirm == "" {
+		return helper.Message400("All fields are required")
 	}
 
-	if err := c.BodyParser(&req); err != nil {
-		return helper.Message400("Invalid request body")
-	}
-
-	err := ctrl.AuthService.ResetPassword(req.Token, req.Password, req.PasswordConfirm)
+	err := ctrl.AuthService.ResetPassword(token, password, passwordConfirm)
 	if err != nil {
 		return helper.Message400(err.Error())
 	}
 
 	return helper.Message200(c, nil, "Password has been reset successfully.")
+}
+
+// ResendOTP resends OTP for the given email and purpose
+func (ctrl *AuthController) ResendOTP(c *fiber.Ctx) error {
+	email := c.FormValue("email")
+	purpose := c.FormValue("purpose")
+
+	if email == "" || purpose == "" {
+		return helper.Message400("Email and purpose are required")
+	}
+
+	// Validate purpose
+	if purpose != "registration" && purpose != "password_reset" {
+		return helper.Message400("Invalid purpose. Must be 'registration' or 'password_reset'")
+	}
+
+	err := ctrl.AuthService.ResendOTP(email, purpose)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, nil, "OTP resent successfully")
+}
+
+// VerifyOTP verifies OTP code for any purpose
+func (ctrl *AuthController) VerifyOTP(c *fiber.Ctx) error {
+	email := c.FormValue("email")
+	otpCode := c.FormValue("otp_code")
+	purpose := c.FormValue("purpose")
+
+	if email == "" || otpCode == "" || purpose == "" {
+		return helper.Message400("Email, OTP code, and purpose are required")
+	}
+
+	err := ctrl.OTPService.VerifyOTP(email, otpCode, purpose)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, nil, "OTP verified successfully")
 }

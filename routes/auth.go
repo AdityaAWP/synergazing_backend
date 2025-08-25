@@ -9,13 +9,19 @@ import (
 
 func SetupAuthRoutes(app *fiber.App) {
 	db := config.GetDB()
-	authService := service.NewAuthService()
+	otpService := service.NewOTPService()
+	authService := service.NewAuthService(otpService)
 	socialAuthService := service.NewSocialAuthService(db)
 
-	authController := controller.NewAuthController(authService)
+	authController := controller.NewAuthController(authService, otpService)
 	socialController := controller.NewSocialController(socialAuthService, authService)
 
 	auth := app.Group("/api/auth")
+
+	auth.Post("/register/initiate", authController.InitiateRegistration)
+	auth.Post("/register/complete", authController.CompleteRegistration)
+	auth.Post("/otp/resend", authController.ResendOTP)
+	auth.Post("/otp/verify", authController.VerifyOTP)
 
 	auth.Post("/register", authController.Register)
 	auth.Post("/login", authController.Login)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 	"synergazing.com/synergazing/model"
@@ -34,6 +35,8 @@ var modelMap = map[string]interface{}{
 	"chats":                &model.Chat{},
 	"message":              &model.Message{},
 	"messages":             &model.Message{},
+	"otp":                  &model.OTP{},
+	"otps":                 &model.OTP{},
 }
 
 func AutoMigrate(db *gorm.DB) {
@@ -45,7 +48,7 @@ func AutoMigrate(db *gorm.DB) {
 	}
 
 	err := db.AutoMigrate(
-		&model.Users{}, &model.Role{}, &model.Permission{}, &model.Skill{}, &model.Tag{}, &model.Benefit{}, &model.Timeline{},
+		&model.Users{}, &model.Role{}, &model.Permission{}, &model.Skill{}, &model.Tag{}, &model.Benefit{}, &model.Timeline{}, &model.OTP{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to migrate primary tables: %v", err)
@@ -96,7 +99,7 @@ func MigrateFresh(db *gorm.DB) {
 	}
 
 	modelsToDrop = []interface{}{
-		&model.Profiles{}, &model.SocialAuth{}, &model.UserSkill{}, &model.Project{}, &model.Chat{},
+		&model.Profiles{}, &model.SocialAuth{}, &model.UserSkill{}, &model.Project{}, &model.Chat{}, &model.OTP{},
 	}
 	if err := tx.Migrator().DropTable(modelsToDrop...); err != nil {
 		tx.Rollback()
@@ -131,6 +134,11 @@ func CreateCustomEnums(db *gorm.DB) error {
 	if err != nil {
 		return err
 	}
+
+	err = db.Exec("DO $$ BEGIN CREATE TYPE otp_purpose AS ENUM ('registration', 'password_reset', 'email_change'); EXCEPTION WHEN duplicate_object THEN null; END $$;").Error
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -142,4 +150,37 @@ func DropWorkerTypeColumn(db *gorm.DB) error {
 	}
 	fmt.Println("Successfully dropped worker_type column")
 	return nil
+}
+
+func MigrateOTP(db *gorm.DB) error {
+	fmt.Println("Running OTP migration...")
+
+	err := db.Exec("DO $$ BEGIN CREATE TYPE otp_purpose AS ENUM ('registration', 'password_reset', 'email_change'); EXCEPTION WHEN duplicate_object THEN null; END $$;").Error
+	if err != nil {
+		return fmt.Errorf("failed to create otp_purpose enum: %v", err)
+	}
+
+	err = db.AutoMigrate(&model.OTP{})
+	if err != nil {
+		return fmt.Errorf("failed to migrate OTP table: %v", err)
+	}
+
+	err = db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_email_verified BOOLEAN DEFAULT FALSE;").Error
+	if err != nil {
+		return fmt.Errorf("failed to add is_email_verified column: %v", err)
+	}
+
+	fmt.Println("OTP migration completed successfully")
+	return nil
+}
+
+func CleanupExpiredOTPs(db *gorm.DB) {
+	result := db.Where("expires_at < ?", time.Now()).Delete(&model.OTP{})
+	if result.Error != nil {
+		log.Printf("Error cleaning up expired OTPs: %v", result.Error)
+	} else if result.RowsAffected > 0 {
+		log.Printf("Cleaned up %d expired OTP records", result.RowsAffected)
+	} else {
+		log.Println("No expired OTP records found")
+	}
 }

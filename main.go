@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -13,6 +14,7 @@ import (
 	"synergazing.com/synergazing/config"
 	"synergazing.com/synergazing/migrations"
 	"synergazing.com/synergazing/routes"
+	"synergazing.com/synergazing/service"
 )
 
 func main() {
@@ -45,11 +47,24 @@ func main() {
 				log.Fatalf("Failed to drop worker_type column: %v", err)
 			}
 			return
+		case "migrate-otp":
+			log.Println("Running OTP migration...")
+			err := migrations.MigrateOTP(db)
+			if err != nil {
+				log.Fatalf("Failed to migrate OTP: %v", err)
+			}
+			return
+		case "cleanup-otp":
+			log.Println("Cleaning up expired OTPs...")
+			migrations.CleanupExpiredOTPs(db)
+			return
 		}
 	}
 
 	log.Println("Running with auto migration...")
 	migrations.AutoMigrate(db)
+
+	go startOTPCleanupRoutine()
 
 	app := fiber.New()
 	app.Use(cors.New())
@@ -59,16 +74,13 @@ func main() {
 		log.Println("Warning: Api.yml not found in root directory")
 	}
 
-	// Serve the OpenAPI YAML file BEFORE the swagger middleware
 	app.Get("/api/docs/doc.yaml", func(c *fiber.Ctx) error {
-		// Get absolute path
 		absPath, err := filepath.Abs("./Api.yml")
 		if err != nil {
 			log.Printf("Error getting absolute path: %v", err)
 			return c.Status(500).SendString("Error loading API spec")
 		}
 
-		// Check if file exists
 		if _, err := os.Stat(absPath); os.IsNotExist(err) {
 			log.Printf("Api.yml not found at: %s", absPath)
 			return c.Status(404).SendString("API specification not found")
@@ -79,14 +91,12 @@ func main() {
 		return c.SendFile("./Api.yml")
 	})
 
-	// Serve OpenAPI documentation
 	app.Get("/api/docs/*", swagger.New(swagger.Config{
 		URL:          "/api/docs/doc.yaml",
 		DeepLinking:  false,
 		DocExpansion: "none",
 	}))
 
-	// Redirect /api/docs to /api/docs/
 	app.Get("/api/docs", func(c *fiber.Ctx) error {
 		return c.Redirect("/api/docs/")
 	})
@@ -96,7 +106,6 @@ func main() {
 	routes.SetupUserRoutes(app)
 	routes.SkillRoutes(app)
 	routes.SetupChatRoutes(app)
-	routes.SetupTestRoutes(app)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello World - GORM Connected!")
@@ -119,4 +128,17 @@ func main() {
 	}
 
 	log.Fatal(app.Listen(":" + port))
+}
+
+func startOTPCleanupRoutine() {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	otpService := service.NewOTPService()
+	otpService.CleanupExpiredOTPs()
+	log.Println("Initial OTP cleanup completed")
+
+	for range ticker.C {
+		otpService.CleanupExpiredOTPs()
+	}
 }

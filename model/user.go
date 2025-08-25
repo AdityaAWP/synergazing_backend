@@ -11,6 +11,7 @@ type Users struct {
 	Role                []*Role      `json:"-" gorm:"many2many:user_roles"`
 	StatusCollaboration string       `json:"status_collaboration" gorm:"type:varchar(20);default:'not ready';check:status_collaboration IN ('not ready','ready')"`
 	UserSkills          []*UserSkill `json:"user_skills,omitempty" gorm:"foreignKey:UserID"`
+	IsEmailVerified     bool         `json:"is_email_verified" gorm:"default:false"`
 	CreatedAt           time.Time    `json:"created_at"`
 	UpdatedAt           time.Time    `json:"updated_at"`
 

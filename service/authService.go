@@ -14,12 +14,84 @@ import (
 	"synergazing.com/synergazing/model"
 )
 
-type AuthService struct{}
-
-func NewAuthService() *AuthService {
-	return &AuthService{}
+type AuthService struct {
+	OTPService *OTPService
 }
 
+func NewAuthService(otpService *OTPService) *AuthService {
+	return &AuthService{
+		OTPService: otpService,
+	}
+}
+
+// InitiateRegistration validates user data and sends OTP for email verification
+func (s *AuthService) InitiateRegistration(name, email, password, phone string) error {
+	if name == "" {
+		return errors.New("Name is required")
+	}
+	if email == "" {
+		return errors.New("Email is required")
+	}
+	if password == "" {
+		return errors.New("Password is required")
+	}
+	if len(password) < 8 {
+		return errors.New("Password must be at least 8 characters")
+	}
+	if phone == "" {
+		return errors.New("Phone number is required")
+	}
+
+	db := config.GetDB()
+
+	// Check if user already exists
+	var existUser model.Users
+	if err := db.Where("email = ?", email).First(&existUser).Error; err == nil {
+		return errors.New("Email already exists")
+	}
+
+	// Send OTP for email verification
+	return s.OTPService.SendOTP(email, "registration")
+}
+
+// CompleteRegistration creates user account after OTP verification
+func (s *AuthService) CompleteRegistration(name, email, password, phone, otpCode string) (*model.Users, error) {
+	// Verify OTP first
+	if err := s.OTPService.VerifyOTP(email, otpCode, "registration"); err != nil {
+		return nil, err
+	}
+
+	db := config.GetDB()
+
+	// Double-check that user doesn't exist (in case they were created between initiate and complete)
+	var existUser model.Users
+	if err := db.Where("email = ?", email).First(&existUser).Error; err == nil {
+		return nil, errors.New("Email already exists")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, errors.New("Failed to hash password")
+	}
+
+	user := model.Users{
+		Name:            name,
+		Email:           email,
+		Password:        string(hashedPassword),
+		Phone:           phone,
+		IsEmailVerified: true, // Mark as verified since OTP was successful
+	}
+
+	if err := db.Create(&user).Error; err != nil {
+		log.Printf("Database error creating user: %v", err)
+		return nil, fmt.Errorf("Failed to create user: %v", err)
+	}
+
+	user.Password = ""
+	return &user, nil
+}
+
+// Register (legacy method for backward compatibility)
 func (s *AuthService) Register(name, email, password string, phone string) (*model.Users, error) {
 	if name == "" {
 		return nil, errors.New("Name is required")
@@ -69,7 +141,12 @@ func (s *AuthService) Login(email, password string) (string, *model.Users, error
 
 	var user model.Users
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
-		return "", nil, errors.New("Invalid Credetial Email")
+		return "", nil, errors.New("Invalid Credential Email")
+	}
+
+	// Check if email is verified (for new registrations)
+	if !user.IsEmailVerified {
+		return "", nil, errors.New("Please verify your email address before logging in")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
@@ -86,6 +163,31 @@ func (s *AuthService) Login(email, password string) (string, *model.Users, error
 }
 
 func (s *AuthService) Logout(token string) error {
+	return nil
+}
+
+// ResendOTP resends OTP for the given email and purpose
+func (s *AuthService) ResendOTP(email, purpose string) error {
+	return s.OTPService.SendOTP(email, purpose)
+}
+
+// VerifyEmailWithOTP verifies email using OTP code
+func (s *AuthService) VerifyEmailWithOTP(email, otpCode string) error {
+	if err := s.OTPService.VerifyOTP(email, otpCode, "registration"); err != nil {
+		return err
+	}
+
+	db := config.GetDB()
+	var user model.Users
+	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
+		return errors.New("User not found")
+	}
+
+	user.IsEmailVerified = true
+	if err := db.Save(&user).Error; err != nil {
+		return errors.New("Failed to update email verification status")
+	}
+
 	return nil
 }
 
