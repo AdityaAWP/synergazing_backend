@@ -23,6 +23,7 @@ func SetupAuthRoutes(app *fiber.App) {
 	auth.Post("/otp/resend", authController.ResendOTP)
 	auth.Post("/otp/verify", authController.VerifyOTP)
 
+	auth.Get("/register/info", authController.GetRegistrationInfo)
 	auth.Post("/register", authController.Register)
 	auth.Post("/login", authController.Login)
 	auth.Post("/logout", authController.Logout)

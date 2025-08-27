@@ -65,6 +65,7 @@ func main() {
 	migrations.AutoMigrate(db)
 
 	go startOTPCleanupRoutine()
+	go startNotificationRoutine()
 
 	app := fiber.New()
 	app.Use(cors.New())
@@ -106,6 +107,8 @@ func main() {
 	routes.SetupUserRoutes(app)
 	routes.SkillRoutes(app)
 	routes.SetupChatRoutes(app)
+	routes.SetupNotificationRoutes(app)
+	routes.SetupProjectMemberRoutes(app)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello World - GORM Connected!")
@@ -140,5 +143,28 @@ func startOTPCleanupRoutine() {
 
 	for range ticker.C {
 		otpService.CleanupExpiredOTPs()
+	}
+}
+
+func startNotificationRoutine() {
+	ticker := time.NewTicker(24 * time.Hour) // Check daily
+	defer ticker.Stop()
+
+	db := config.GetDB()
+	notificationService := service.NewNotificationService(db)
+
+	// Initial check
+	if err := notificationService.CheckAndNotifyApproachingDeadlines(); err != nil {
+		log.Printf("Error in initial deadline notification check: %v", err)
+	} else {
+		log.Println("Initial deadline notification check completed")
+	}
+
+	for range ticker.C {
+		if err := notificationService.CheckAndNotifyApproachingDeadlines(); err != nil {
+			log.Printf("Error checking approaching deadlines: %v", err)
+		} else {
+			log.Println("Deadline notification check completed")
+		}
 	}
 }

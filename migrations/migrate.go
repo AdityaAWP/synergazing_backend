@@ -37,6 +37,10 @@ var modelMap = map[string]interface{}{
 	"messages":             &model.Message{},
 	"otp":                  &model.OTP{},
 	"otps":                 &model.OTP{},
+	"notification":         &model.Notification{},
+	"notifications":        &model.Notification{},
+	"projectapplication":   &model.ProjectApplication{},
+	"projectapplications":  &model.ProjectApplication{},
 }
 
 func AutoMigrate(db *gorm.DB) {
@@ -55,14 +59,14 @@ func AutoMigrate(db *gorm.DB) {
 	}
 
 	err = db.AutoMigrate(
-		&model.Profiles{}, &model.SocialAuth{}, &model.UserSkill{}, &model.Project{}, &model.Chat{},
+		&model.Profiles{}, &model.SocialAuth{}, &model.UserSkill{}, &model.Project{}, &model.Chat{}, &model.Notification{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to migrate dependent tables: %v", err)
 	}
 
 	err = db.AutoMigrate(
-		&model.ProjectCondition{}, &model.ProjectRequiredSkill{}, &model.ProjectTag{}, &model.ProjectBenefit{}, &model.ProjectTimeline{}, &model.ProjectRole{}, &model.ProjectRoleSkill{}, &model.ProjectMember{}, &model.ProjectMemberSkill{}, &model.Message{},
+		&model.ProjectCondition{}, &model.ProjectRequiredSkill{}, &model.ProjectTag{}, &model.ProjectBenefit{}, &model.ProjectTimeline{}, &model.ProjectRole{}, &model.ProjectRoleSkill{}, &model.ProjectMember{}, &model.ProjectMemberSkill{}, &model.Message{}, &model.ProjectApplication{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to migrate final tables: %v", err)
@@ -91,7 +95,7 @@ func MigrateFresh(db *gorm.DB) {
 	}
 
 	modelsToDrop := []interface{}{
-		&model.ProjectMemberSkill{}, &model.ProjectMember{}, &model.ProjectRoleSkill{}, &model.ProjectCondition{}, &model.ProjectRequiredSkill{}, &model.ProjectTag{}, &model.ProjectBenefit{}, &model.ProjectTimeline{}, &model.ProjectRole{}, &model.Message{},
+		&model.ProjectMemberSkill{}, &model.ProjectMember{}, &model.ProjectRoleSkill{}, &model.ProjectCondition{}, &model.ProjectRequiredSkill{}, &model.ProjectTag{}, &model.ProjectBenefit{}, &model.ProjectTimeline{}, &model.ProjectRole{}, &model.Message{}, &model.Notification{}, &model.ProjectApplication{},
 	}
 	if err := tx.Migrator().DropTable(modelsToDrop...); err != nil {
 		tx.Rollback()

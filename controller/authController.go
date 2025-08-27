@@ -1,6 +1,9 @@
 package controller
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 	"synergazing.com/synergazing/helper"
 	"synergazing.com/synergazing/service"
@@ -25,8 +28,23 @@ func (ctrl *AuthController) InitiateRegistration(c *fiber.Ctx) error {
 	password := c.FormValue("password")
 	phone := c.FormValue("phone")
 
-	if name == "" || email == "" || password == "" || phone == "" {
-		return helper.Message400("All fields are required")
+	// Detailed field validation with specific error messages
+	var missingFields []string
+	if name == "" {
+		missingFields = append(missingFields, "name")
+	}
+	if email == "" {
+		missingFields = append(missingFields, "email")
+	}
+	if password == "" {
+		missingFields = append(missingFields, "password")
+	}
+	if phone == "" {
+		missingFields = append(missingFields, "phone")
+	}
+
+	if len(missingFields) > 0 {
+		return helper.Message400(fmt.Sprintf("Missing required fields: %s", strings.Join(missingFields, ", ")))
 	}
 
 	err := ctrl.AuthService.InitiateRegistration(name, email, password, phone)
@@ -45,8 +63,26 @@ func (ctrl *AuthController) CompleteRegistration(c *fiber.Ctx) error {
 	phone := c.FormValue("phone")
 	otpCode := c.FormValue("otp_code")
 
-	if name == "" || email == "" || password == "" || phone == "" || otpCode == "" {
-		return helper.Message400("All fields are required")
+	// Detailed field validation with specific error messages
+	var missingFields []string
+	if name == "" {
+		missingFields = append(missingFields, "name")
+	}
+	if email == "" {
+		missingFields = append(missingFields, "email")
+	}
+	if password == "" {
+		missingFields = append(missingFields, "password")
+	}
+	if phone == "" {
+		missingFields = append(missingFields, "phone")
+	}
+	if otpCode == "" {
+		missingFields = append(missingFields, "otp_code")
+	}
+
+	if len(missingFields) > 0 {
+		return helper.Message400(fmt.Sprintf("Missing required fields: %s", strings.Join(missingFields, ", ")))
 	}
 
 	user, err := ctrl.AuthService.CompleteRegistration(name, email, password, phone, otpCode)
@@ -65,15 +101,29 @@ func (ctrl *AuthController) CompleteRegistration(c *fiber.Ctx) error {
 	}, "Registration completed successfully")
 }
 
-// Register (legacy method for backward compatibility)
 func (ctrl *AuthController) Register(c *fiber.Ctx) error {
 	name := c.FormValue("name")
 	email := c.FormValue("email")
 	password := c.FormValue("password")
 	phone := c.FormValue("phone")
 
-	if name == "" || email == "" || password == "" || phone == "" {
-		return helper.Message400("All fields are required")
+	// Detailed field validation with specific error messages
+	var missingFields []string
+	if name == "" {
+		missingFields = append(missingFields, "name")
+	}
+	if email == "" {
+		missingFields = append(missingFields, "email")
+	}
+	if password == "" {
+		missingFields = append(missingFields, "password")
+	}
+	if phone == "" {
+		missingFields = append(missingFields, "phone")
+	}
+
+	if len(missingFields) > 0 {
+		return helper.Message400(fmt.Sprintf("Missing required fields: %s", strings.Join(missingFields, ", ")))
 	}
 
 	user, err := ctrl.AuthService.Register(name, email, password, phone)
@@ -87,9 +137,9 @@ func (ctrl *AuthController) Register(c *fiber.Ctx) error {
 	}
 
 	return helper.Message201(c, fiber.Map{
-		"users": user,
+		"user":  user,
 		"token": token,
-	}, "User registered successfully")
+	}, "User registered successfully (direct registration)")
 }
 
 func (ctrl *AuthController) Login(c *fiber.Ctx) error {
@@ -199,4 +249,34 @@ func (ctrl *AuthController) VerifyOTP(c *fiber.Ctx) error {
 	}
 
 	return helper.Message200(c, nil, "OTP verified successfully")
+}
+
+// GetRegistrationInfo provides information about available registration methods
+func (ctrl *AuthController) GetRegistrationInfo(c *fiber.Ctx) error {
+	return helper.Message200(c, fiber.Map{
+		"registration_methods": []fiber.Map{
+			{
+				"method":          "direct",
+				"endpoint":        "/api/auth/register",
+				"description":     "Direct registration without OTP verification",
+				"required_fields": []string{"name", "email", "password", "phone"},
+				"process":         "Single step registration",
+			},
+			{
+				"method":      "otp",
+				"endpoints":   []string{"/api/auth/register/initiate", "/api/auth/register/complete"},
+				"description": "Two-step registration with OTP email verification",
+				"step1": fiber.Map{
+					"endpoint":        "/api/auth/register/initiate",
+					"required_fields": []string{"name", "email", "password", "phone"},
+					"description":     "Initiates registration and sends OTP to email",
+				},
+				"step2": fiber.Map{
+					"endpoint":        "/api/auth/register/complete",
+					"required_fields": []string{"name", "email", "password", "phone", "otp_code"},
+					"description":     "Completes registration after OTP verification",
+				},
+			},
+		},
+	}, "Registration methods information")
 }
