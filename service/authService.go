@@ -122,10 +122,11 @@ func (s *AuthService) Register(name, email, password string, phone string) (*mod
 	}
 
 	user := model.Users{
-		Name:     name,
-		Email:    email,
-		Password: string(hashedPassword),
-		Phone:    phone,
+		Name:            name,
+		Email:           email,
+		Password:        string(hashedPassword),
+		Phone:           phone,
+		IsEmailVerified: true, // Direct registration doesn't require email verification
 	}
 
 	if err := db.Create(&user).Error; err != nil {
@@ -142,11 +143,6 @@ func (s *AuthService) Login(email, password string) (string, *model.Users, error
 	var user model.Users
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		return "", nil, errors.New("Invalid Credential Email")
-	}
-
-	// Check if email is verified (for new registrations)
-	if !user.IsEmailVerified {
-		return "", nil, errors.New("Please verify your email address before logging in")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
@@ -256,4 +252,15 @@ func (s *AuthService) ResetPassword(token, password, passwordConfirm string) err
 	}
 
 	return nil
+}
+
+// GetEmailVerificationStatus returns the email verification status of a user
+func (s *AuthService) GetEmailVerificationStatus(email string) (bool, error) {
+	db := config.GetDB()
+	var user model.Users
+	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
+		return false, errors.New("User not found")
+	}
+
+	return user.IsEmailVerified, nil
 }

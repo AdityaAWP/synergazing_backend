@@ -280,3 +280,55 @@ func (ctrl *AuthController) GetRegistrationInfo(c *fiber.Ctx) error {
 		},
 	}, "Registration methods information")
 }
+
+// VerifyEmail allows users to verify their email address after registration
+func (ctrl *AuthController) VerifyEmail(c *fiber.Ctx) error {
+	email := c.FormValue("email")
+	otpCode := c.FormValue("otp_code")
+
+	if email == "" || otpCode == "" {
+		return helper.Message400("Email and OTP code are required")
+	}
+
+	err := ctrl.AuthService.VerifyEmailWithOTP(email, otpCode)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, nil, "Email verified successfully")
+}
+
+// RequestEmailVerification sends OTP for email verification
+func (ctrl *AuthController) RequestEmailVerification(c *fiber.Ctx) error {
+	email := c.FormValue("email")
+
+	if email == "" {
+		return helper.Message400("Email is required")
+	}
+
+	err := ctrl.AuthService.ResendOTP(email, "registration")
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, nil, "Verification email sent")
+}
+
+// GetUserVerificationStatus returns the email verification status of a user
+func (ctrl *AuthController) GetUserVerificationStatus(c *fiber.Ctx) error {
+	email := c.FormValue("email")
+
+	if email == "" {
+		return helper.Message400("Email is required")
+	}
+
+	status, err := ctrl.AuthService.GetEmailVerificationStatus(email)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, fiber.Map{
+		"email":             email,
+		"is_email_verified": status,
+	}, "Email verification status retrieved")
+}
