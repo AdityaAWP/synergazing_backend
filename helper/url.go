@@ -37,7 +37,7 @@ func GetFrontendURL() string {
 // BuildOAuthSuccessURL builds the OAuth success redirect URL with query parameters
 func BuildOAuthSuccessURL(token string, userID uint, userName, userEmail string) string {
 	frontendURL := GetFrontendURL()
-	return fmt.Sprintf("%s/auth/callback?success=true&token=%s&user_id=%d&user_name=%s&user_email=%s",
+	return fmt.Sprintf("%s/callback?success=true&token=%s&user_id=%d&user_name=%s&user_email=%s",
 		frontendURL,
 		url.QueryEscape(token),
 		userID,
@@ -48,13 +48,13 @@ func BuildOAuthSuccessURL(token string, userID uint, userName, userEmail string)
 // BuildOAuthErrorURL builds the OAuth error redirect URL with error type
 func BuildOAuthErrorURL(errorType string) string {
 	frontendURL := GetFrontendURL()
-	return fmt.Sprintf("%s/auth/callback?error=%s", frontendURL, url.QueryEscape(errorType))
+	return fmt.Sprintf("%s/callback?error=%s", frontendURL, url.QueryEscape(errorType))
 }
 
 // BuildOAuthErrorURLWithDescription builds the OAuth error redirect URL with error type and description
 func BuildOAuthErrorURLWithDescription(errorType, description string) string {
 	frontendURL := GetFrontendURL()
-	return fmt.Sprintf("%s/auth/callback?error=%s&error_description=%s",
+	return fmt.Sprintf("%s/callback?error=%s&error_description=%s",
 		frontendURL,
 		url.QueryEscape(errorType),
 		url.QueryEscape(description))
