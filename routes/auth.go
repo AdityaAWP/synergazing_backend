@@ -36,6 +36,10 @@ func SetupAuthRoutes(app *fiber.App) {
 	auth.Post("/request-email-verification", authController.RequestEmailVerification)
 	auth.Get("/verification-status", authController.GetUserVerificationStatus)
 
+	// OAuth redirect endpoints
+	auth.Get("/success", socialController.OAuthSuccess)
+	auth.Get("/error", socialController.OAuthError)
+
 	google := auth.Group("/google")
 	google.Get("/login", socialController.GoogleLogin)
 	google.Get("/callback", socialController.GoogleCallback)

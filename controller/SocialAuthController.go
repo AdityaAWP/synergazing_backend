@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"synergazing.com/synergazing/helper"
 	"synergazing.com/synergazing/service"
 )
 
@@ -76,24 +77,31 @@ func (c *SocialController) GoogleCallback(ctx *fiber.Ctx) error {
 
 	if ctx.Query("state") != oauthStateString {
 		log.Printf("State mismatch! Expected: %s, Got: %s", oauthStateString, ctx.Query("state"))
-		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid state"})
+		errorURL := helper.BuildOAuthErrorURL("invalid_state")
+		return ctx.Redirect(errorURL)
 	}
 
 	config := getGoogleOAuthConfig()
 	token, err := config.Exchange(context.Background(), ctx.Query("code"))
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to exchange token"})
+		log.Printf("Failed to exchange token: %v", err)
+		errorURL := helper.BuildOAuthErrorURL("token_exchange_failed")
+		return ctx.Redirect(errorURL)
 	}
 
 	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to get user info"})
+		log.Printf("Failed to get user info: %v", err)
+		errorURL := helper.BuildOAuthErrorURL("user_info_failed")
+		return ctx.Redirect(errorURL)
 	}
 	defer response.Body.Close()
 
 	contents, err := io.ReadAll(response.Body)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to read user info response"})
+		log.Printf("Failed to read user info response: %v", err)
+		errorURL := helper.BuildOAuthErrorURL("user_info_read_failed")
+		return ctx.Redirect(errorURL)
 	}
 
 	var userInfo struct {
@@ -102,25 +110,64 @@ func (c *SocialController) GoogleCallback(ctx *fiber.Ctx) error {
 		Name  string `json:"name"`
 	}
 	if err := json.Unmarshal(contents, &userInfo); err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to parse user info"})
+		log.Printf("Failed to parse user info: %v", err)
+		errorURL := helper.BuildOAuthErrorURL("user_info_parse_failed")
+		return ctx.Redirect(errorURL)
 	}
 
 	user, err := c.socialAuthService.HandleProviderCallback("google", userInfo.ID, userInfo.Name, userInfo.Email)
 	if err != nil {
 		log.Printf("Error in HandleProviderCallback: %v", err)
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to process user data"})
+		errorURL := helper.BuildOAuthErrorURL("user_processing_failed")
+		return ctx.Redirect(errorURL)
 	}
 
 	jwtToken, err := c.authService.GenerateTokenForUser(user.ID, user.Email)
 	if err != nil {
-		return ctx.Status(500).JSON(fiber.Map{
-			"error": "Token generation failed",
+		log.Printf("Token generation failed: %v", err)
+		errorURL := helper.BuildOAuthErrorURL("token_generation_failed")
+		return ctx.Redirect(errorURL)
+	}
+
+	// Redirect to frontend with success data
+	redirectURL := helper.BuildOAuthSuccessURL(jwtToken, user.ID, user.Name, user.Email)
+	log.Printf("Redirecting to frontend: %s", redirectURL)
+	return ctx.Redirect(redirectURL)
+}
+
+// OAuthSuccess handles successful OAuth redirects with query parameters
+func (c *SocialController) OAuthSuccess(ctx *fiber.Ctx) error {
+	token := ctx.Query("token")
+	userID := ctx.Query("user_id")
+	userName := ctx.Query("user_name")
+	userEmail := ctx.Query("user_email")
+
+	if token == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Missing token parameter",
 		})
 	}
 
 	return ctx.JSON(fiber.Map{
-		"message": "Login successful",
-		"user":    user,
-		"token":   jwtToken,
+		"success":    true,
+		"message":    "OAuth authentication successful",
+		"token":      token,
+		"user_id":    userID,
+		"user_name":  userName,
+		"user_email": userEmail,
+	})
+}
+
+// OAuthError handles OAuth error redirects
+func (c *SocialController) OAuthError(ctx *fiber.Ctx) error {
+	errorType := ctx.Query("error")
+	errorDescription := ctx.Query("error_description", "An error occurred during authentication")
+
+	log.Printf("OAuth Error: %s - %s", errorType, errorDescription)
+
+	return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		"success": false,
+		"error":   errorType,
+		"message": errorDescription,
 	})
 }

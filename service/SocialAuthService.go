@@ -26,6 +26,12 @@ func (s *SocialAuthService) HandleProviderCallback(provider, providerID, name, e
 
 	var user model.Users
 	if err := s.db.Where("email = ?", email).First(&user).Error; err == nil {
+		// Update existing user to be email verified for OAuth login
+		user.IsEmailVerified = true
+		if err := s.db.Save(&user).Error; err != nil {
+			return nil, err
+		}
+
 		newSocialAuth := model.SocialAuth{
 			UserID:     user.ID,
 			Provider:   provider,
@@ -42,8 +48,9 @@ func (s *SocialAuthService) HandleProviderCallback(provider, providerID, name, e
 	tx := s.db.Begin()
 
 	newUser := model.Users{
-		Name:  name,
-		Email: email,
+		Name:            name,
+		Email:           email,
+		IsEmailVerified: true, // OAuth users are automatically email verified
 	}
 	if err := tx.Create(&newUser).Error; err != nil {
 		tx.Rollback()
