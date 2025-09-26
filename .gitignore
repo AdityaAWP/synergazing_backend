@@ -11,6 +11,14 @@
 *synergazing
 *.Ds_Store
 
+# Go build artifacts
+main
+server_test
+synergazing_test
+test-build
+test_build
+synergazing_backend
+
 # Test binary, built with `go test -c`
 *.test
 
