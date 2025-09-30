@@ -1074,25 +1074,31 @@ func (s *ProjectService) DeleteProject(projectID, userID uint) error {
 		return fmt.Errorf("failed to delete project member skills: %w", err)
 	}
 
-	// 2. Delete project members (references project_roles)
+	// 2. Delete project applications (references project_roles) - This is crucial!
+	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectApplication{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project applications: %w", err)
+	}
+
+	// 3. Delete project members (references project_roles)
 	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectMember{}).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("failed to delete project members: %w", err)
 	}
 
-	// 3. Delete project role skills (references project_roles) - This fixes the foreign key constraint error
+	// 4. Delete project role skills (references project_roles)
 	if err := tx.Where("project_role_id IN (SELECT id FROM project_roles WHERE project_id = ?)", projectID).Delete(&model.ProjectRoleSkill{}).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("failed to delete project role skills: %w", err)
 	}
 
-	// 4. Now we can safely delete project roles
+	// 5. Now we can safely delete project roles
 	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectRole{}).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("failed to delete project roles: %w", err)
 	}
 
-	// 5. Delete other project-related records
+	// 6. Delete other project-related records
 	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectBenefit{}).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("failed to delete project benefits: %w", err)
@@ -1116,6 +1122,12 @@ func (s *ProjectService) DeleteProject(projectID, userID uint) error {
 	if err := tx.Where("project_id = ?", projectID).Delete(&model.ProjectTag{}).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("failed to delete project tags: %w", err)
+	}
+
+	// Delete notifications that reference this project
+	if err := tx.Where("project_id = ?", projectID).Delete(&model.Notification{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete project notifications: %w", err)
 	}
 
 	// Finally delete the project itself
