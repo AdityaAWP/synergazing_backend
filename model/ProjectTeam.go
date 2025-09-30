@@ -24,6 +24,7 @@ type ProjectMember struct {
 	ProjectRoleID   uint                  `json:"project_role_id" gorm:"not null"`
 	Status          string                `json:"status" gorm:"not null;default:'invited'"`
 	RoleDescription string                `json:"role_description" gorm:"type:text"`
+	Project         Project               `json:"project" gorm:"foreignKey:ProjectID"`
 	User            Users                 `json:"user" gorm:"foreignKey:UserID"`
 	ProjectRole     ProjectRole           `json:"project_role" gorm:"foreignKey:ProjectRoleID"`
 	MemberSkills    []*ProjectMemberSkill `json:"member_skills" gorm:"foreignKey:ProjectMemberID"`

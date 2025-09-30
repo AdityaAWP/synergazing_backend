@@ -31,7 +31,8 @@ func SetupProjectMemberRoutes(app *fiber.App) {
 	api.Put("/:project_id/invitation/respond", projectMemberController.RespondToInvitation)
 	api.Delete("/:project_id/members/:user_id", projectMemberController.RemoveMember)
 
-	// User's own applications
+	// User's own applications and invitations
 	userApi := app.Group("/api/user", middleware.AuthMiddleware())
 	userApi.Get("/applications", projectMemberController.GetUserApplications)
+	userApi.Get("/project-invitations", projectMemberController.GetUserInvitations)
 }

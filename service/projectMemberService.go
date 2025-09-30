@@ -145,6 +145,20 @@ func (s *ProjectMemberService) GetUserApplications(userID uint) ([]model.Project
 	return applications, nil
 }
 
+// GetUserInvitations retrieves project invitations received by a user
+func (s *ProjectMemberService) GetUserInvitations(userID uint) ([]model.ProjectMember, error) {
+	var invitations []model.ProjectMember
+	if err := s.DB.Where("user_id = ? AND status = ?", userID, "invited").
+		Preload("Project").
+		Preload("ProjectRole").
+		Order("created_at DESC").
+		Find(&invitations).Error; err != nil {
+		return nil, fmt.Errorf("failed to get user invitations: %v", err)
+	}
+
+	return invitations, nil
+}
+
 // ReviewApplicationData contains the review decision and notes
 type ReviewApplicationData struct {
 	Action      string `json:"action"`

@@ -92,6 +92,18 @@ func (ctrl *ProjectMemberController) GetUserApplications(c *fiber.Ctx) error {
 	return helper.Message200(c, applications, "User applications retrieved successfully")
 }
 
+// GetUserInvitations retrieves project invitations received by a user
+func (ctrl *ProjectMemberController) GetUserInvitations(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+
+	invitations, err := ctrl.projectMemberService.GetUserInvitations(userID)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, invitations, "User invitations retrieved successfully")
+}
+
 // ReviewApplication allows project creator to accept or reject an application
 func (ctrl *ProjectMemberController) ReviewApplication(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
