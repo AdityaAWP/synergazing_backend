@@ -10,6 +10,7 @@
 *.bak
 *synergazing
 *.Ds_Store
+*.html
 
 # Go build artifacts
 main
