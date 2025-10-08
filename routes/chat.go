@@ -34,6 +34,12 @@ func SetupChatRoutes(app *fiber.App) {
 	// Get notifications for unread messages
 	api.Get("/notifications", chatController.GetNotifications)
 
-	// Get total unread count
+	// Get total unread count (deprecated - use specific endpoints below)
 	api.Get("/unread-count", chatController.GetUnreadCount)
+
+	// Get count of users with unread messages
+	api.Get("/unread-users-count", chatController.GetUnreadUsersCount)
+
+	// Get total count of unread messages
+	api.Get("/unread-messages-count", chatController.GetUnreadMessagesCount)
 }

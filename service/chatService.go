@@ -258,3 +258,86 @@ func (s *ChatService) GetTotalUnreadCount(userID uint) (int, error) {
 
 	return int(count), nil
 }
+
+// GetUnreadUsersCount gets the count of users who have sent unread messages to the current user
+func (s *ChatService) GetUnreadUsersCount(userID uint) (int, error) {
+	var count int64
+
+	// Count distinct sender IDs from unread messages in chats where the user is a participant
+	err := s.DB.Model(&model.Message{}).
+		Joins("JOIN chats ON messages.chat_id = chats.id").
+		Where("(chats.user1_id = ? OR chats.user2_id = ?) AND messages.sender_id != ? AND messages.is_read = false",
+			userID, userID, userID).
+		Distinct("messages.sender_id").
+		Count(&count).Error
+
+	if err != nil {
+		return 0, fmt.Errorf("error getting unread users count: %v", err)
+	}
+
+	return int(count), nil
+}
+
+// GetUnreadMessagesCount gets the total number of unread messages for a user (same as GetTotalUnreadCount but with clearer naming)
+func (s *ChatService) GetUnreadMessagesCount(userID uint) (int, error) {
+	var count int64
+
+	err := s.DB.Model(&model.Message{}).
+		Joins("JOIN chats ON messages.chat_id = chats.id").
+		Where("(chats.user1_id = ? OR chats.user2_id = ?) AND messages.sender_id != ? AND messages.is_read = false",
+			userID, userID, userID).
+		Count(&count).Error
+
+	if err != nil {
+		return 0, fmt.Errorf("error getting unread messages count: %v", err)
+	}
+
+	return int(count), nil
+}
+
+// GetUnreadMessagesCountByUser gets unread message counts grouped by sender (like WhatsApp/Telegram)
+func (s *ChatService) GetUnreadMessagesCountByUser(userID uint) ([]map[string]interface{}, error) {
+	var results []map[string]interface{}
+
+	// Get unread message counts grouped by sender with user details
+	rows, err := s.DB.Raw(`
+		SELECT 
+			m.sender_id,
+			u.name as sender_name,
+			COUNT(m.id) as unread_count
+		FROM messages m
+		JOIN chats c ON m.chat_id = c.id
+		JOIN users u ON m.sender_id = u.id
+		WHERE (c.user1_id = ? OR c.user2_id = ?) 
+		  AND m.sender_id != ? 
+		  AND m.is_read = false
+		GROUP BY m.sender_id, u.name
+		ORDER BY unread_count DESC
+	`, userID, userID, userID).Rows()
+
+	if err != nil {
+		return nil, fmt.Errorf("error getting unread messages count by user: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var senderID uint
+		var senderName string
+		var unreadCount int
+
+		err := rows.Scan(&senderID, &senderName, &unreadCount)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning unread count row: %v", err)
+		}
+
+		result := map[string]interface{}{
+			"user_id":      senderID,
+			"user_name":    senderName,
+			"unread_count": unreadCount,
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
+}

@@ -376,3 +376,38 @@ func (ctrl *ChatController) GetUnreadCount(c *fiber.Ctx) error {
 		"unread_count": count,
 	}, "Unread count retrieved successfully")
 }
+
+// GetUnreadUsersCount gets the count of users who have sent unread messages to the authenticated user
+func (ctrl *ChatController) GetUnreadUsersCount(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+
+	count, err := ctrl.ChatService.GetUnreadUsersCount(userID)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	return helper.Message200(c, fiber.Map{
+		"unread_users_count": count,
+	}, "Unread users count retrieved successfully")
+}
+
+// GetUnreadMessagesCount gets the total unread message count for the authenticated user
+func (ctrl *ChatController) GetUnreadMessagesCount(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+
+	unreadByUser, err := ctrl.ChatService.GetUnreadMessagesCountByUser(userID)
+	if err != nil {
+		return helper.Message400(err.Error())
+	}
+
+	// Calculate total count
+	totalCount := 0
+	for _, item := range unreadByUser {
+		totalCount += item["unread_count"].(int)
+	}
+
+	return helper.Message200(c, fiber.Map{
+		"unread_messages": unreadByUser,
+		"total_count":     totalCount,
+	}, "Unread messages count retrieved successfully")
+}
