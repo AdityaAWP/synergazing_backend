@@ -33,8 +33,9 @@ type MessageResponse struct {
 	IsRead    bool   `json:"is_read"`
 	CreatedAt string `json:"created_at"`
 	Sender    struct {
-		ID   uint   `json:"id"`
-		Name string `json:"name"`
+		ID     uint   `json:"id"`
+		Name   string `json:"name"`
+		Avatar string `json:"avatar,omitempty"`
 	} `json:"sender"`
 }
 
@@ -180,11 +181,18 @@ func (ctrl *ChatController) handleSendMessage(userID uint, msg WebSocketMessage)
 		IsRead:    message.IsRead,
 		CreatedAt: message.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		Sender: struct {
-			ID   uint   `json:"id"`
-			Name string `json:"name"`
+			ID     uint   `json:"id"`
+			Name   string `json:"name"`
+			Avatar string `json:"avatar,omitempty"`
 		}{
 			ID:   message.Sender.ID,
 			Name: message.Sender.Name,
+			Avatar: func() string {
+				if message.Sender.Profile != nil {
+					return helper.GetUrlFile(message.Sender.Profile.ProfilePicture)
+				}
+				return ""
+			}(),
 		},
 	}
 

@@ -72,7 +72,7 @@ func (s *ChatService) GetChatMessages(chatID uint, userID uint, offset, limit in
 	}
 
 	var messages []model.Message
-	err := s.DB.Preload("Sender").
+	err := s.DB.Preload("Sender").Preload("Sender.Profile").
 		Where("chat_id = ?", chatID).
 		Order("created_at DESC").
 		Offset(offset).
@@ -109,7 +109,7 @@ func (s *ChatService) SendMessage(chatID uint, senderID uint, content string) (*
 	}
 
 	// Preload sender information
-	if err := s.DB.Preload("Sender").First(&message, message.ID).Error; err != nil {
+	if err := s.DB.Preload("Sender").Preload("Sender.Profile").First(&message, message.ID).Error; err != nil {
 		return nil, fmt.Errorf("error loading message sender: %v", err)
 	}
 
@@ -139,7 +139,7 @@ func (s *ChatService) MarkMessagesAsRead(chatID uint, userID uint) error {
 func (s *ChatService) GetUserChats(userID uint) ([]model.Chat, error) {
 	var chats []model.Chat
 
-	err := s.DB.Preload("User1").Preload("User2").
+	err := s.DB.Preload("User1").Preload("User2").Preload("User1.Profile").Preload("User2.Profile").
 		Preload("Messages", func(db *gorm.DB) *gorm.DB {
 			return db.Order("created_at DESC").Limit(1) // Get last message
 		}).
@@ -171,7 +171,7 @@ func (s *ChatService) GetChatByID(chatID uint, userID uint) (*model.Chat, error)
 	}
 
 	var chat model.Chat
-	err := s.DB.Preload("User1").Preload("User2").First(&chat, chatID).Error
+	err := s.DB.Preload("User1").Preload("User2").Preload("User1.Profile").Preload("User2.Profile").First(&chat, chatID).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.New("chat not found")
