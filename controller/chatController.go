@@ -4,6 +4,7 @@ import (
 	"log"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -56,6 +57,14 @@ func (ctrl *ChatController) WebSocketUpgrade(c *fiber.Ctx) error {
 
 // WebSocket connection handler
 func (ctrl *ChatController) HandleWebSocket(c *websocket.Conn) {
+	// Set connection timeouts
+	c.SetReadDeadline(time.Now().Add(60 * time.Second))
+	c.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	c.SetPongHandler(func(string) error {
+		c.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
+
 	// Get user ID and token from query params
 	userIDStr := c.Query("user_id")
 	token := c.Query("token")
@@ -126,7 +135,17 @@ func (ctrl *ChatController) HandleWebSocket(c *websocket.Conn) {
 			break
 		}
 
+		// Reset read deadline on any message
+		c.SetReadDeadline(time.Now().Add(60 * time.Second))
+
 		switch msg.Type {
+		case "ping":
+			// Respond with pong
+			pongMsg := WebSocketMessage{
+				Type: "pong",
+				Data: fiber.Map{"timestamp": time.Now().Unix()},
+			}
+			ctrl.sendToUser(currentUserID, pongMsg)
 		case "send_message":
 			ctrl.handleSendMessage(currentUserID, msg)
 		case "join_chat":
@@ -224,12 +243,18 @@ func (ctrl *ChatController) sendToUser(userID uint, msg WebSocketMessage) {
 	ctrl.mutex.RUnlock()
 
 	if exists && conn != nil {
+		// Set write deadline
+		conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+
 		if err := conn.WriteJSON(msg); err != nil {
 			log.Printf("Error sending message to user %d: %v", userID, err)
 			// Remove failed connection
 			ctrl.mutex.Lock()
 			delete(ctrl.connections, userID)
 			ctrl.mutex.Unlock()
+
+			// Close the connection gracefully
+			conn.Close()
 		}
 	}
 }
