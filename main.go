@@ -68,7 +68,19 @@ func main() {
 	go startNotificationRoutine()
 
 	app := fiber.New()
-	app.Use(cors.New())
+
+	// Get allowed origins from environment variable
+	allowedOrigins := os.Getenv("FRONTEND_URL")
+	if allowedOrigins == "" {
+		log.Fatalf("FRONTEND_URL environment variable is required")
+	}
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     allowedOrigins,
+		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization,Access-Control-Allow-Origin,Connection,Upgrade,Sec-WebSocket-Key,Sec-WebSocket-Version,Sec-WebSocket-Protocol",
+		AllowCredentials: true,
+	}))
 	app.Static("/storage", "./storage")
 
 	if _, err := os.Stat("./Api.yml"); os.IsNotExist(err) {
