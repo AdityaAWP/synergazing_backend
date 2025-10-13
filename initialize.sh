@@ -1,16 +1,13 @@
+#!/bin/bash
 set -e
 
-PROJECT_DIR="/home/rebbeca/synergazing/synergazing_backend"
+echo "🚀 Memulai proses deployment..."
 
-echo "🚀 Starting deployment for Synergize..."
-
-cd "$PROJECT_DIR" || { echo "Error: Project directory not found. Aborting."; exit 1; }
-
-echo "Pulling from main branch..."
+echo " menarik perubahan terbaru dari branch main..."
 git pull origin main
 
-echo "Restart Docker container"
+echo " Membangun ulang dan menjalankan ulang kontainer Docker..."
 sudo docker compose down
 sudo docker compose up --build -d
 
-echo "Deployment finished successfully!"
+echo "✅ Deployment selesai dengan sukses!"
