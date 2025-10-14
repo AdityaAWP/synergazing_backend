@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -126,23 +125,14 @@ func main() {
 		return c.SendString("Hello World - GORM Connected!")
 	})
 
-	appURL := os.Getenv("APP_URL")
-
-	parsedURL, err := url.Parse(appURL)
-	if err != nil {
-		log.Fatalf("Failed to parse APP_URL: %v", err)
-	}
-
-	port := parsedURL.Port()
+	port := os.Getenv("PORT")
 	if port == "" {
-		if parsedURL.Scheme == "https" {
-			port = "443"
-		} else {
-			port = "80"
-		}
+		port = "3002"
 	}
 
+	log.Printf("Starting server on port %s", port)
 	log.Fatal(app.Listen(":" + port))
+
 }
 
 func startOTPCleanupRoutine() {
